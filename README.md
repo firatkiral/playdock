@@ -1,6 +1,6 @@
 # PlayDock
 
-![PlayDock logo](client/images/playdock_preview.jpg)
+<img src="client/images/playdock_preview.jpg" alt="PlayDock preview" width="600" />
 
 PlayDock is a Windows desktop gaming hub for keeping PC games from different launchers in one clean library. It scans supported launchers, lets you add local games, launches games directly, enriches entries with IGDB metadata, and includes an RSS feed for gaming news.
 
@@ -100,7 +100,7 @@ Supported launchers and sources:
 
 ## Adding a Game
 
-![PlayDock logo](client/images/playdock_addgame.jpg)
+<img src="client/images/playdock_addgame.jpg" alt="PlayDock adding game" width="320" />
 
 Open the add menu and choose **Add Game** to create a local game entry.
 
@@ -118,7 +118,7 @@ After saving, the game appears in the library and can be launched like any other
 
 ## Scanning Folder
 
-![PlayDock logo](client/images/playdock_scan.jpg)
+<img src="client/images/playdock_scan.jpg" alt="PlayDock scanning folder" width="320" />
 
 Folder scanning helps add several local games at once.
 
@@ -132,7 +132,7 @@ After the games are added, use each card's edit action to update metadata, image
 
 ## RSS Feed
 
-![PlayDock logo](client/images/playdock_rss.jpg)
+<img src="client/images/playdock_rss.jpg" alt="PlayDock RSS feed" width="320" />
 
 PlayDock includes an RSS feed view for gaming news, videos, and updates.
 
