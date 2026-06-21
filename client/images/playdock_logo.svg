@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">PlayDock</title>
+  <defs>
+    <linearGradient id="playdockGradient" x1="82" y1="430" x2="412" y2="72" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#00d1a7"/>
+      <stop offset="0.52" stop-color="#00bdf2"/>
+      <stop offset="1" stop-color="#2479ff"/>
+    </linearGradient>
+  </defs>
+  <path
+    d="M75 214v102c0 49.2 39.8 89 89 89h184c49.2 0 89-39.8 89-89V214"
+    fill="none"
+    stroke="url(#playdockGradient)"
+    stroke-width="46"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M162 80 354 194 162 308Z"
+    fill="none"
+    stroke="url(#playdockGradient)"
+    stroke-width="46"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>
