@@ -48,18 +48,21 @@ Build outputs are created in the `dist/` folder.
 
 ## Install
 
+Download PlayDock from the [GitHub Releases page](https://github.com/firatkiral/playdock/releases).
+
 ### Portable Windows Build
 
 Use the portable build if you want to run PlayDock without a full installer.
 
-1. Download or build the portable Windows package.
+1. Download the portable Windows package from [GitHub Releases](https://github.com/firatkiral/playdock/releases), or build it locally.
+2. Extract it if needed.
 3. Run `PlayDock.exe`.
 
 ### Installer
 
 Use the installer if you want PlayDock added to Windows like a normal desktop app.
 
-1. Download or build the installer package.
+1. Download the installer package from [GitHub Releases](https://github.com/firatkiral/playdock/releases), or build it locally.
 2. Run the installer.
 3. Launch PlayDock from the Start menu or desktop shortcut.
 
