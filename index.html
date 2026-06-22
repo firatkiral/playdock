@@ -1,0 +1,628 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="PlayDock is a Windows desktop gaming hub for organizing, enriching, and launching PC games from one clean library.">
+  <title>PlayDock</title>
+  <style>
+    :root {
+      --bg: #090b10;
+      --panel: #121722;
+      --panel-strong: #171f2e;
+      --text: #f5f7fb;
+      --muted: #9ca7b8;
+      --line: rgba(255, 255, 255, 0.12);
+      --accent: #00d1a7;
+      --accent-2: #7dd3fc;
+      --danger: #ff6b6b;
+      --shadow: 0 28px 80px rgba(0, 0, 0, 0.4);
+      --radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      background: var(--bg);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+
+    body::before {
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      content: "";
+      background:
+        linear-gradient(180deg, rgba(9, 11, 16, 0.12), #090b10 72%),
+        url("images/playdock_preview.jpg") center top / cover no-repeat;
+      opacity: 0.32;
+    }
+
+    body::after {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      content: "";
+      background:
+        radial-gradient(circle at 18% 18%, rgba(0, 209, 167, 0.14), transparent 34%),
+        radial-gradient(circle at 82% 10%, rgba(125, 211, 252, 0.12), transparent 30%),
+        linear-gradient(180deg, rgba(9, 11, 16, 0.2), #090b10 64%);
+      pointer-events: none;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    img {
+      display: block;
+      max-width: 100%;
+    }
+
+    .shell {
+      width: min(1180px, calc(100% - 40px));
+      margin: 0 auto;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(9, 11, 16, 0.78);
+      backdrop-filter: blur(18px);
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 72px;
+      gap: 20px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      font-weight: 850;
+    }
+
+    .brand img {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .nav-links a {
+      text-decoration: none;
+    }
+
+    .nav-links a:hover {
+      color: var(--text);
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 0 16px;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.06);
+      text-decoration: none;
+      font-weight: 750;
+      transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+    }
+
+    .button:hover {
+      transform: translateY(-1px);
+      border-color: rgba(255, 255, 255, 0.22);
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .button.primary {
+      border-color: rgba(0, 209, 167, 0.45);
+      color: #03110f;
+      background: var(--accent);
+    }
+
+    .hero {
+      min-height: calc(100vh - 72px);
+      display: grid;
+      align-items: center;
+      padding: 72px 0 56px;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 0.9fr) minmax(420px, 1.1fr);
+      align-items: center;
+      gap: 48px;
+    }
+
+    .eyebrow {
+      margin: 0 0 14px;
+      color: var(--accent-2);
+      font-size: 13px;
+      font-weight: 850;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 780px;
+      font-size: clamp(38px, 7vw, 60px);
+      line-height: 0.92;
+      letter-spacing: 0;
+    }
+
+    .hero-copy {
+      margin: 24px 0 0;
+      max-width: 660px;
+      color: #d7dde8;
+      font-size: clamp(17px, 2vw, 21px);
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 30px;
+    }
+
+    .hero-stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 36px;
+      max-width: 660px;
+    }
+
+    .stat {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px;
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 18px;
+    }
+
+    .stat span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .hero-shot {
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .hero-shot img {
+      width: 100%;
+      aspect-ratio: 16 / 11;
+      object-fit: cover;
+    }
+
+    section {
+      padding: 78px 0;
+    }
+
+    .section-head {
+      display: flex;
+      flex-flow: column;
+      align-items: start;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 28px;
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font-size: clamp(30px, 4vw, 54px);
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .section-head p {
+      max-width: 520px;
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .feature {
+      min-height: 188px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 22px;
+      background: rgba(18, 23, 34, 0.72);
+    }
+
+    .feature svg {
+      width: 24px;
+      height: 24px;
+      color: var(--accent);
+    }
+
+    .feature h3 {
+      margin: 18px 0 8px;
+      font-size: 18px;
+    }
+
+    .feature p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .showcase {
+      display: block;
+    }
+
+    .showcase-tabs {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .tab {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 18px;
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.05);
+      text-align: left;
+    }
+
+    .tab strong {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--text);
+      font-size: 16px;
+    }
+
+    .sources {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .source {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      color: #dfe5ef;
+      background: rgba(255, 255, 255, 0.05);
+      font-weight: 750;
+    }
+
+    .install {
+      display: grid;
+      grid-template-columns: 0.9fr 1.1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 24px;
+      background: rgba(18, 23, 34, 0.76);
+    }
+
+    .panel h3 {
+      margin: 0 0 10px;
+    }
+
+    .panel p,
+    .panel li {
+      color: var(--muted);
+    }
+
+    .code {
+      display: grid;
+      gap: 8px;
+      margin: 14px 0 0;
+    }
+
+    .code code {
+      display: block;
+      overflow-x: auto;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius);
+      padding: 12px;
+      color: #d9fff7;
+      background: #070a0e;
+      font: 13px/1.4 "Cascadia Code", Consolas, monospace;
+    }
+
+    .privacy {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .footer {
+      border-top: 1px solid var(--line);
+      padding: 34px 0;
+      color: var(--muted);
+    }
+
+    .footer .shell {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity 520ms ease, transform 520ms ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 920px) {
+      .nav-links {
+        display: none;
+      }
+
+      .hero-grid,
+      .install,
+      .privacy {
+        grid-template-columns: 1fr;
+      }
+
+      .hero {
+        padding-top: 46px;
+      }
+
+      .feature-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .showcase-tabs {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .shell {
+        width: min(100% - 28px, 1180px);
+      }
+
+      .hero-stats,
+      .feature-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .section-head {
+        display: grid;
+      }
+
+      .hero-shot img {
+        aspect-ratio: 4 / 3;
+      }
+
+      .footer .shell {
+        display: grid;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <nav class="shell nav" aria-label="Primary navigation">
+      <a class="brand" href="#top">
+        <img src="images/playdock_logo.png" alt="">
+        <span>PlayDock</span>
+      </a>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#workflow">Workflow</a>
+        <a href="#install">Install</a>
+        <a href="#privacy">Privacy</a>
+      </div>
+      <a class="button" href="https://github.com/firatkiral/playdock/releases">Download</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="shell hero-grid">
+        <div class="reveal">
+          <p class="eyebrow">Windows desktop gaming hub</p>
+          <h1>One clean dock for every PC game.</h1>
+          <p class="hero-copy">PlayDock scans supported launchers, lets you add local games, enriches your library with IGDB metadata, and keeps gaming headlines nearby.</p>
+          <div class="hero-actions">
+            <a class="button primary" href="https://github.com/firatkiral/playdock/releases">Download PlayDock</a>
+            <a class="button" href="#workflow">See how it works</a>
+          </div>
+          <div class="hero-stats" aria-label="PlayDock highlights">
+            <div class="stat"><strong>5 sources</strong><span>Steam, Epic, GOG, Ubisoft, local</span></div>
+            <div class="stat"><strong>IGDB</strong><span>Covers, summaries, genres, media</span></div>
+            <div class="stat"><strong>Local first</strong><span>Library data stays on device</span></div>
+          </div>
+        </div>
+        <div class="hero-shot reveal">
+          <img src="images/playdock_preview.jpg" alt="PlayDock library preview">
+        </div>
+      </div>
+    </section>
+
+    <section id="features">
+      <div class="shell">
+        <div class="section-head reveal">
+          <h2>Built for a real game library.</h2>
+          <p>Browse, search, organize, and launch your PC games from a single desktop interface.</p>
+        </div>
+        <div class="feature-grid">
+          <article class="feature reveal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            <h3>Launch directly</h3>
+            <p>Start games from their cards, with launch paths, working directories, arguments, and process names kept editable.</p>
+          </article>
+          <article class="feature reveal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16v14H4z"/><path d="m4 15 4-4 4 4 2-2 6 6"/></svg>
+            <h3>Richer metadata</h3>
+            <p>Pull covers, screenshots, summaries, genres, developers, publishers, scores, videos, and links from IGDB.</p>
+          </article>
+          <article class="feature reveal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-6"/></svg>
+            <h3>Track activity</h3>
+            <p>Keep favorites, recent games, play count, playtime, hidden games, and local library details organized.</p>
+          </article>
+          <article class="feature reveal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>
+            <h3>RSS headlines</h3>
+            <p>Read gaming news from configurable RSS feeds, grouped by date with thumbnails and external article links.</p>
+          </article>
+          <article class="feature reveal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h18"/><path d="M6 7v13h12V7"/><path d="M9 7V4h6v3"/></svg>
+            <h3>Local additions</h3>
+            <p>Add executables, shortcuts, URLs, batch files, command files, or scan whole folders for local games.</p>
+          </article>
+          <article class="feature reveal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5z"/></svg>
+            <h3>Local storage</h3>
+            <p>Your library, app settings, RSS configuration, hidden games, and IGDB credentials stay on your Windows device.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="workflow">
+      <div class="shell">
+        <div class="section-head reveal">
+          <h2>Fast paths for common tasks.</h2>
+          <p>Switch between adding games, scanning folders, and checking RSS updates without leaving the desktop app.</p>
+        </div>
+        <div class="showcase">
+          <div class="showcase-tabs reveal">
+            <div class="tab">
+              <strong>Add a game</strong>
+              Drag in a file, browse manually, edit details, and pull metadata.
+            </div>
+            <div class="tab">
+              <strong>Scan a folder</strong>
+              Inspect a directory and choose the local games you want to add.
+            </div>
+            <div class="tab">
+              <strong>Follow headlines</strong>
+              Load RSS posts from sources you configure and open articles externally.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="shell">
+        <div class="section-head reveal">
+          <h2>Launcher support.</h2>
+          <p>PlayDock scans installed games from common PC sources and lets you fill the gaps manually.</p>
+        </div>
+        <div class="sources reveal">
+          <span class="source">Steam</span>
+          <span class="source">Epic Games</span>
+          <span class="source">Ubisoft Connect</span>
+          <span class="source">GOG</span>
+          <span class="source">Local games</span>
+          <span class="source">Shortcuts</span>
+          <span class="source">URLs</span>
+          <span class="source">Folder scans</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="install">
+      <div class="shell install">
+        <div class="section-head reveal">
+          <div>
+            <h2>Open source.</h2>
+            <p>PlayDock is open source, so you can inspect the code, build it locally, report issues, or contribute improvements.</p>
+          </div>
+        </div>
+        <div class="panel reveal">
+          <h3>View on GitHub</h3>
+          <p>The source repository includes the Electron app, launcher integrations, metadata tools, RSS support, and Windows build configuration.</p>
+          <a class="button primary" href="https://github.com/firatkiral/playdock">Open GitHub repository</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="privacy">
+      <div class="shell privacy">
+        <div class="panel reveal">
+          <h3>Privacy</h3>
+          <p>PlayDock stores your library, settings, RSS configuration, hidden games, and IGDB credentials locally on your Windows device.</p>
+          <p>Network access is used for IGDB authentication, metadata lookup, image downloads, RSS feed loading, and links you choose to open.</p>
+          <a class="button" href="/privacy/">Read privacy details</a>
+        </div>
+        <div class="panel reveal">
+          <h3>IGDB setup</h3>
+          <p>IGDB metadata is optional. Add a Client ID and Client Secret in Settings to enable metadata search and automatic metadata loading.</p>
+          <a class="button" href="https://api-docs.igdb.com/#account-creation">Create IGDB credentials</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="shell">
+      <span>PlayDock. Windows desktop gaming hub.</span>
+      <span>MIT License</span>
+    </div>
+  </footer>
+
+  <script>
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("visible");
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12 });
+
+    document.querySelectorAll(".reveal").forEach((element) => observer.observe(element));
+  </script>
+</body>
+</html>
