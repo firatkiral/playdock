@@ -519,7 +519,7 @@ function chooseAutoSelectedGame(games, fullLibraryGames) {
     return lastPlayedGame;
   }
 
-  const favoriteGame = games.find((game) => game.favorite);
+  const favoriteGame = getFavoriteGames(games)[0];
   if (favoriteGame) {
     return favoriteGame;
   }
