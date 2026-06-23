@@ -48,7 +48,7 @@
       "createStartMenuShortcut": true,
       "shortcutName": "PlayDock",
       "menuCategory": "PlayDock",
-      "artifactName": "${productName}-${version}-${arch}.${ext}"
+      "artifactName": "${productName}-Setup-${version}-${arch}.${ext}"
     },
     "nsis": {
       "oneClick": false,
