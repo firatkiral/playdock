@@ -356,6 +356,18 @@ function getDefaultRssUrls() {
     }
 }
 
+function normalizeAutoscanSources(value) {
+    if (!Array.isArray(value)) {
+        return ["steam", "epic", "ubisoft", "gog"];
+    }
+
+    return Array.from(new Set(
+        value
+            .map((entry) => String(entry || '').trim().toLowerCase())
+            .filter(Boolean)
+    ));
+}
+
 function createDefaultAppDoc() {
     return {
         name: "PlayDock",
@@ -370,6 +382,7 @@ function createDefaultAppDoc() {
                 clientSecret: "",
             },
             rssUrls: getDefaultRssUrls(),
+            autoscan: ["steam", "epic", "ubisoft", "gog"],
             windowBounds: { ...DEFAULT_WINDOW_BOUNDS },
         },
     };
@@ -384,6 +397,7 @@ function ensureAppDocSettings(appDoc) {
     appDoc.settings.igdb.clientId = String(appDoc.settings.igdb.clientId || '');
     appDoc.settings.igdb.clientSecret = String(appDoc.settings.igdb.clientSecret || '');
     appDoc.settings.rssUrls = normalizeRssUrls(appDoc.settings.rssUrls);
+    appDoc.settings.autoscan = normalizeAutoscanSources(appDoc.settings.autoscan);
     appDoc.settings.windowBounds = {
         ...DEFAULT_WINDOW_BOUNDS,
         ...(appDoc.settings.windowBounds || {}),
@@ -763,11 +777,22 @@ app.whenReady().then(async val => {
     });
 
     ipcMain.handle('get-games', async (event) => {
+        const appDoc = getOrCreateAppDoc();
+        const enabledSources = new Set(normalizeAutoscanSources(appDoc.settings?.autoscan));
+        const scanners = [
+            { source: 'steam', scan: () => steam.getInstalledGames() },
+            { source: 'epic', scan: () => epic.getInstalledGames() },
+            { source: 'ubisoft', scan: () => ubisoft.getInstalledGames() },
+            { source: 'gog', scan: () => gog.getInstalledGames() },
+        ];
         const scannedGames = [];
-        scannedGames.push(...await steam.getInstalledGames());
-        scannedGames.push(...await epic.getInstalledGames());
-        scannedGames.push(...await ubisoft.getInstalledGames());
-        scannedGames.push(...await gog.getInstalledGames());
+        for (const scanner of scanners) {
+            if (!enabledSources.has(scanner.source)) {
+                continue;
+            }
+
+            scannedGames.push(...await scanner.scan());
+        }
 
         for (let game of scannedGames) {
             const existingGame = db.instance.Game.exists({ name: game.name });
@@ -786,108 +811,6 @@ app.whenReady().then(async val => {
             }
         }
 
-        // const testGames = [
-        //     "Counter-Strike 2",
-        //     "ARC Raiders",
-        //     "Euro Truck Simulator 2",
-        //     "Where Winds Meet",
-        //     "Rust",
-        //     "Mount & Blade II: Bannerlord",
-        //     "World of Warships",
-        //     "PUBG: BATTLEGROUNDS",
-        //     "EA SPORTS FC™ 26",
-        //     "Battlefield™ 6",
-        //     "Clair Obscur: Expedition 33",
-        //     "World of Tanks",
-        //     "Dispatch",
-        //     "Dota 2",
-        //     "Apex Legends™",
-        //     "RV There Yet?",
-        //     "Hogwarts Legacy",
-        //     "Warframe",
-        //     "Total War: WARHAMMER III",
-        //     "Europa Universalis V",
-        //     "Marvel Rivals",
-        //     "NBA 2K26",
-        //     "Farming Simulator 25",
-        //     "Megabonk",
-        //     "R.E.P.O.",
-        //     "Euro Truck Simulator 2 - Nordic Horizons",
-        //     "Dead by Daylight",
-        //     "ELDEN RING NIGHTREIGN",
-        //     "PEAK",
-        //     "Black Desert",
-        //     "War Thunder",
-        //     "American Truck Simulator",
-        //     "HELLDIVERS™ 2",
-        //     "Escape from Tarkov",
-        //     "No Man's Sky",
-        //     "Baldur's Gate 3",
-        //     "Warhammer 40,000: Darktide",
-        //     "Arena Breakout: Infinite",
-        //     "ELDEN RING",
-        //     "Path of Exile 2",
-        //     "SILENT HILL f",
-        //     "MIMESIS",
-        //     "SILENT HILL 2",
-        //     "Palworld",
-        //     "Football Manager 26",
-        //     "Dying Light 2 Stay Human: Reloaded Edition",
-        //     "Hearts of Iron IV",
-        //     "Anno 117: Pax Romana",
-        //     "Phasmophobia",
-        //     "F1® 25",
-        //     "IdleOn",
-        //     "Escape the Backrooms",
-        //     "Destiny 2",
-        //     "Tom Clancy's Rainbow Six® Siege X",
-        //     "Dying Light: The Beast",
-        //     "Umamusume: Pretty Derby",
-        //     "Microsoft Flight Simulator 2024",
-        //     "THRONE AND LIBERTY",
-        //     "The Elder Scrolls® Online",
-        //     "Mortal Kombat 1",
-        //     "Stardew Valley",
-        //     "Age of Empires IV: Anniversary Edition",
-        //     "Kingdom Come: Deliverance II",
-        //     "Wuthering Waves",
-        //     "Crime Simulator",
-        //     "Guild Wars 2",
-        //     "Bellwright",
-        //     "METAL GEAR SOLID Δ: SNAKE EATER",
-        //     "Car Dealership Simulator 2",
-        //     "Call of Duty®: Black Ops 7",
-        //     "Marvel's Spider-Man 2",
-        //     "Mortal Kombat 11",
-        //     "Hades II",
-        //     "iRacing",
-        //     "Frostpunk 2",
-        //     "Hollow Knight: Silksong",
-        //     "Schedule I",
-        //     "World of Tanks Blitz",
-        //     "Total War: ROME II - Emperor Edition",
-        //     "REMATCH",
-        //     "Once Human",
-        //     "Bodycam",
-        //     "Far Cry® 5",
-        //     "Arma 3",
-        //     "inZOI",
-        //     "Dead Cells",
-        //     "Black Myth: Wukong",
-        //     "Jurassic World Evolution 3",
-        //     "A Way Out",
-        //     "Fallout 76",
-        // ];
-
-        // for (let gameName of testGames) {
-        //     const existingGame = db.instance.Game.exists({ name: gameName });
-        //     if (!existingGame) {
-        //         db.instance.Game.insert({
-        //             name: gameName,
-        //         });
-        //     }
-        // }
-
         // Detect games removed from the PC and delete non-local (add by scanning) entries from the database
         db.instance.Game.removeWhere(function (obj) {
             if (obj.launch.source === "local") return false;
@@ -895,7 +818,7 @@ app.whenReady().then(async val => {
             return !stillInstalled;
         });
 
-        return db.instance.Game.find().docs().filter((game) => !game.hidden);
+        return db.instance.Game.find().docs();
     });
 
     ipcMain.handle('get-metadata', async (event, gameId) => {

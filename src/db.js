@@ -93,6 +93,7 @@ const appShema = {
                 },
                 default: {},
             },
+            autoscan: { type: ["String"], default: ["steam", "epic", "ubisoft", "gog"] },
         },
         required: true,
         default: {},
