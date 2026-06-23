@@ -136,14 +136,6 @@ function updateStoredLaunchFromScan(existingGame, scannedGame) {
     return existingGame;
 }
 
-function delay(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function canVerifyLocalLaunch(launch) {
-    return isLocalSource(launch && launch.source ? launch.source : 'local') && Boolean(launch && launch.exe);
-}
-
 function markGameLaunched(game) {
     game.lastPlayed = Date.now();
     game.playCount = (game.playCount || 0) + 1;
@@ -1171,32 +1163,15 @@ app.whenReady().then(async val => {
 
         try {
             await fn.launchGame(toStoredGame(game), { waitForExit: false });
-
-            if (canVerifyLocalLaunch(launch)) {
-                const started = await fn.waitForProcessStart(launch.exe, 15000, 1000);
-                if (started) {
-                    markGameLaunched(game);
-                }
-
-                return {
-                    game,
-                    launch: {
-                        status: started ? 'started' : 'failed',
-                        verified: true,
-                        reason: started ? '' : 'process-not-found',
-                        processName: launch.exe
-                    }
-                };
-            }
-
-            await delay(3000);
             markGameLaunched(game);
+            await saveDatabase();
+
             return {
                 game,
                 launch: {
                     status: 'launched',
                     verified: false,
-                    reason: 'unverified-launcher'
+                    reason: 'launch-command-completed'
                 }
             };
         } catch (error) {
@@ -1205,7 +1180,7 @@ app.whenReady().then(async val => {
                 game,
                 launch: {
                     status: 'failed',
-                    verified: canVerifyLocalLaunch(launch),
+                    verified: false,
                     reason: 'launch-command-failed'
                 }
             };

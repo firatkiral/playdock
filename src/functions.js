@@ -48,13 +48,13 @@ function waitForProcessStart(processName, timeout = 15000, interval = 1000) {
 function executeLaunchCommand(game) {
     return new Promise((resolve, reject) => {
         const command = `start "" /D "${game.installDir}" "${game.launchCmd}" ${game.launchArgs}`;
-        exec(command, (err) => {
-            if (err) {
-                console.error("Failed to launch game:", err);
-                reject(err);
-                return;
-            }
+        const child = exec(command, { windowsHide: true });
 
+        child.once("error", (error) => {
+            console.error("Failed to launch game:", error);
+            reject(error);
+        });
+        child.once("spawn", () => {
             resolve();
         });
     });

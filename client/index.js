@@ -1643,7 +1643,10 @@ async function playGame(gameId) {
   render();
 
   try {
-    const result = await window.electronAPI.launchGame(game.id);
+    const [result] = await Promise.all([
+      window.electronAPI.launchGame(game.id),
+      new Promise((resolve) => window.setTimeout(resolve, 3000)),
+    ]);
     const updatedGame = result && result.game ? result.game : result;
     const launchResult = result && result.launch ? result.launch : { status: "started" };
 
