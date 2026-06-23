@@ -1032,6 +1032,7 @@ app.whenReady().then(async val => {
         const game = db.instance.Game.insert(gameInput);
         game.metadata = await cacheMetadataImages(input.metadata, game.id);
         db.instance.Game.update(game);
+        await saveDatabase();
 
         return game;
     });
@@ -1071,6 +1072,7 @@ app.whenReady().then(async val => {
         }
 
         db.instance.Game.update(game);
+        await saveDatabase();
         return game;
     });
 
@@ -1084,6 +1086,7 @@ app.whenReady().then(async val => {
         }
 
         db.instance.Game.remove(game);
+        await saveDatabase();
         return { id: gameId };
     });
 
@@ -1095,6 +1098,7 @@ app.whenReady().then(async val => {
 
         game.hidden = true;
         db.instance.Game.update(game);
+        await saveDatabase();
         return { id: gameId };
     });
 
@@ -1110,6 +1114,7 @@ app.whenReady().then(async val => {
 
         game.hidden = false;
         db.instance.Game.update(game);
+        await saveDatabase();
         return game;
     });
 
@@ -1191,6 +1196,7 @@ app.whenReady().then(async val => {
 
         game.favorite = !Boolean(game.favorite);
         db.instance.Game.update(game);
+        await saveDatabase();
 
         return game;
     });

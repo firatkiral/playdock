@@ -429,7 +429,7 @@ function getFullLibraryGames(games) {
   const sortedGames = [...sourceFilteredGames];
 
   if (view.sort === "created") {
-    sortedGames.sort((a, b) => gameCreatedTime(a) - gameCreatedTime(b) || compareGamesByName(a, b));
+    sortedGames.sort((a, b) => gameCreatedTime(b) - gameCreatedTime(a) || compareGamesByName(a, b));
   } else if (view.sort === "source") {
     sortedGames.sort((a, b) => {
       const sourceDifference = sourceOrder(a.launch && a.launch.source) - sourceOrder(b.launch && b.launch.source);
