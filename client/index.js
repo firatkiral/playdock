@@ -44,8 +44,12 @@ const state = {
     sort: "name",
     groupedBySource: false,
   },
+  favoritesView: {
+    sort: "favoritedAt",
+  },
   enabledAutoscanSources: ["steam", "epic", "ubisoft", "gog"],
   libraryViewSaveTimer: null,
+  favoritesViewSaveTimer: null,
 };
 
 const heroDock = document.querySelector("#heroDock");
@@ -169,6 +173,11 @@ const librarySortOptions = [
   { sort: "created", label: "Date Added" },
   { sort: "source", label: "Source" },
 ];
+const favoritesSortOptions = [
+  { sort: "favoritedAt", label: "Recently Favorited" },
+  { sort: "name", label: "Name" },
+  { sort: "lastPlayed", label: "Recently Played" },
+];
 
 const fallbackDescriptions = [
   "Ready when you are. Launch straight in or open details to check what is installed.",
@@ -245,6 +254,7 @@ function normalizeGame(game, index) {
     coverImage: metadata ? metadata.coverImage : "",
     screenshots: metadata ? metadata.screenshots : [],
     favorite: game.favorite,
+    favoritedAt: game.favoritedAt,
   };
 }
 
@@ -374,12 +384,54 @@ function makeShelves(games) {
   const recent = games
     .filter((game) => game.lastPlayed)
     .sort((a, b) => b.lastPlayed - a.lastPlayed).slice(0, 10);
-  const favorites = games.filter((game) => game.favorite);
+  const favorites = getFavoriteGames(games);
   
   return [
     { title: "Continue Playing", subtitle: "Your latest sessions, sorted by last launch.", games: recent.slice(0, 18) },
-    { title: "Favorites", subtitle: "Pinned games you want close at hand.", games: favorites.slice(0, 18) },
+    {
+      title: "Favorites",
+      subtitle: "Pinned games you want close at hand.",
+      games: favorites.slice(0, 18),
+      controls: renderFavoritesControls(),
+    },
   ].filter((shelf) => shelf.games.length > 0);
+}
+
+function normalizeFavoritesViewSettings(value = {}) {
+  const sort = String(value.sort || "favoritedAt").trim();
+
+  return {
+    sort: favoritesSortOptions.some((option) => option.sort === sort) ? sort : "favoritedAt",
+  };
+}
+
+function applyFavoritesViewSettings(value = {}) {
+  state.favoritesView = normalizeFavoritesViewSettings(value);
+}
+
+function getFavoriteGames(games) {
+  const favorites = games.filter((game) => game.favorite);
+  const sort = normalizeFavoritesViewSettings(state.favoritesView).sort;
+
+  return [...favorites].sort((a, b) => {
+    if (sort === "name") {
+      return compareGamesByName(a, b);
+    }
+
+    if (sort === "lastPlayed") {
+      return Number(b.lastPlayed || 0) - Number(a.lastPlayed || 0) || compareGamesByName(a, b);
+    }
+
+    const aFavoritedAt = Number(a.favoritedAt || 0);
+    const bFavoritedAt = Number(b.favoritedAt || 0);
+    if (aFavoritedAt > 0 || bFavoritedAt > 0) {
+      return bFavoritedAt - aFavoritedAt || compareGamesByName(a, b);
+    }
+
+    const aCreated = a && a.meta ? Number(a.meta.created || 0) : 0;
+    const bCreated = b && b.meta ? Number(b.meta.created || 0) : 0;
+    return bCreated - aCreated || compareGamesByName(a, b);
+  });
 }
 
 function normalizeLibraryViewSettings(value = {}, enabledAutoscanSources = state.enabledAutoscanSources) {
@@ -529,6 +581,7 @@ function render() {
       </section>
     `;
     bindFullLibraryControls();
+    bindFavoritesControls();
     bindGameCards();
     return;
   }
@@ -551,6 +604,7 @@ function render() {
   `;
 
   bindFullLibraryControls();
+  bindFavoritesControls();
   bindGameCards();
 }
 
@@ -1052,11 +1106,28 @@ function renderShelf(shelf) {
           <h2 class="section-title">${escapeHtml(shelf.title)}</h2>
           <p class="section-subtitle">${escapeHtml(shelf.subtitle)}</p>
         </div>
+        ${shelf.controls || ""}
       </div>
       <div class="rail">
         ${shelf.games.map(renderGameCard).join("")}
       </div>
     </section>`;
+}
+
+function renderFavoritesControls() {
+  const view = normalizeFavoritesViewSettings(state.favoritesView);
+
+  return `
+    <div class="library-controls" aria-label="Favorites controls">
+      <label class="library-control">
+        <span>Sort</span>
+        <select class="library-control-select" data-favorites-view-control="sort">
+          ${favoritesSortOptions.map((option) => `
+            <option value="${escapeAttribute(option.sort)}"${view.sort === option.sort ? " selected" : ""}>${escapeHtml(option.label)}</option>
+          `).join("")}
+        </select>
+      </label>
+    </div>`;
 }
 
 function renderFullLibraryControls() {
@@ -1141,6 +1212,50 @@ function bindFullLibraryControls() {
   });
 }
 
+function bindFavoritesControls() {
+  document.querySelectorAll("[data-favorites-view-control]:not([data-bound-favorites-view])").forEach((control) => {
+    control.dataset.boundFavoritesView = "true";
+    control.addEventListener("change", () => {
+      state.favoritesView = normalizeFavoritesViewSettings({
+        ...state.favoritesView,
+        [control.dataset.favoritesViewControl]: control.value,
+      });
+      render();
+      queueFavoritesViewSettingsSave();
+    });
+  });
+}
+
+function queueFavoritesViewSettingsSave() {
+  if (state.favoritesViewSaveTimer) {
+    window.clearTimeout(state.favoritesViewSaveTimer);
+  }
+
+  state.favoritesViewSaveTimer = window.setTimeout(() => {
+    state.favoritesViewSaveTimer = null;
+    saveFavoritesViewSettings();
+  }, 350);
+}
+
+async function saveFavoritesViewSettings() {
+  try {
+    const appDoc = await window.electronAPI.getApp();
+    const settings = appDoc && appDoc.settings ? appDoc.settings : {};
+    await window.electronAPI.updateAppSettings({
+      runOnStartup: Boolean(settings.runOnStartup),
+      closeToTray: settings.closeToTray !== false,
+      igdb: settings.igdb || {},
+      rssUrls: settings.rssUrls || [],
+      autoscan: settings.autoscan,
+      libraryView: state.libraryView,
+      favoritesView: state.favoritesView,
+      showTips: appDoc ? appDoc.showTips !== false : true,
+    });
+  } catch (error) {
+    console.error("Could not save favorites view settings.", error);
+  }
+}
+
 function queueLibraryViewSettingsSave() {
   if (state.libraryViewSaveTimer) {
     window.clearTimeout(state.libraryViewSaveTimer);
@@ -1163,6 +1278,7 @@ async function saveLibraryViewSettings() {
       rssUrls: settings.rssUrls || [],
       autoscan: settings.autoscan,
       libraryView: state.libraryView,
+      favoritesView: state.favoritesView,
       showTips: appDoc ? appDoc.showTips !== false : true,
     });
   } catch (error) {
@@ -1985,6 +2101,9 @@ async function saveSettings() {
       previousAppDoc && previousAppDoc.settings ? previousAppDoc.settings.libraryView : state.libraryView,
       nextAutoscanSources
     );
+    const nextFavoritesViewSettings = normalizeFavoritesViewSettings(
+      previousAppDoc && previousAppDoc.settings ? previousAppDoc.settings.favoritesView : state.favoritesView
+    );
     const igdbCredentialsChanged = previousIgdbSettings.clientId !== nextIgdbSettings.clientId
       || previousIgdbSettings.clientSecret !== nextIgdbSettings.clientSecret;
 
@@ -1995,10 +2114,12 @@ async function saveSettings() {
       rssUrls: previousAppDoc && previousAppDoc.settings ? previousAppDoc.settings.rssUrls : [],
       autoscan: nextAutoscanSources,
       libraryView: nextLibraryViewSettings,
+      favoritesView: nextFavoritesViewSettings,
       showTips: showTipsInput.checked,
     });
     applyEnabledAutoscanSources(nextAutoscanSources);
     state.libraryView = nextLibraryViewSettings;
+    state.favoritesView = nextFavoritesViewSettings;
 
     for (const gameId of state.pendingUnhideGameIds) {
       const game = await window.electronAPI.unhideGame(gameId);
@@ -2057,6 +2178,7 @@ async function saveRssSettings() {
       rssUrls: nextRssUrls,
       autoscan: previousSettings.autoscan,
       libraryView: previousSettings.libraryView,
+      favoritesView: previousSettings.favoritesView,
       showTips: previousAppDoc ? previousAppDoc.showTips !== false : true,
     });
 
@@ -2804,6 +2926,7 @@ async function init() {
     const appDoc = await window.electronAPI.getApp();
     applyEnabledAutoscanSources(appDoc && appDoc.settings ? appDoc.settings.autoscan : undefined);
     applyLibraryViewSettings(appDoc && appDoc.settings ? appDoc.settings.libraryView : {});
+    applyFavoritesViewSettings(appDoc && appDoc.settings ? appDoc.settings.favoritesView : {});
 
     await loadGames();
   } catch (error) {

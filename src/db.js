@@ -103,6 +103,13 @@ const appShema = {
                 },
                 default: {},
             },
+            favoritesView: {
+                type: "Object",
+                schema: {
+                    sort: { type: "String", default: "favoritedAt" },
+                },
+                default: {},
+            },
         },
         required: true,
         default: {},
@@ -122,6 +129,7 @@ const gameSchema = {
     userRating: { type: "Number" }, // 0-5
     hidden: { type: "Boolean", default: false },
     favorite: { type: "Boolean", default: false },
+    favoritedAt: { type: "Number" },
     launch: {
         type: "Object",
         schema: {

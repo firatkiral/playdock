@@ -32,6 +32,9 @@ const DEFAULT_LIBRARY_VIEW_SETTINGS = {
     sort: "name",
     groupedBySource: false,
 };
+const DEFAULT_FAVORITES_VIEW_SETTINGS = {
+    sort: "favoritedAt",
+};
 const DEFAULTS_PATH = path.join(__dirname, 'defaults.json');
 let saveWindowBoundsTimer = null;
 const folderScanJobs = new Map();
@@ -426,6 +429,16 @@ function normalizeLibraryViewSettings(value = {}) {
     };
 }
 
+function normalizeFavoritesViewSettings(value = {}) {
+    const sort = String(value.sort || DEFAULT_FAVORITES_VIEW_SETTINGS.sort).trim();
+
+    return {
+        sort: ["favoritedAt", "name", "lastPlayed"].includes(sort)
+            ? sort
+            : DEFAULT_FAVORITES_VIEW_SETTINGS.sort,
+    };
+}
+
 function createDefaultAppDoc() {
     return {
         name: "PlayDock",
@@ -442,6 +455,7 @@ function createDefaultAppDoc() {
             rssUrls: getDefaultRssUrls(),
             autoscan: [...AUTOSCAN_SOURCES],
             libraryView: { ...DEFAULT_LIBRARY_VIEW_SETTINGS },
+            favoritesView: { ...DEFAULT_FAVORITES_VIEW_SETTINGS },
             windowBounds: { ...DEFAULT_WINDOW_BOUNDS },
         },
     };
@@ -458,6 +472,7 @@ function ensureAppDocSettings(appDoc) {
     appDoc.settings.rssUrls = normalizeRssUrls(appDoc.settings.rssUrls);
     appDoc.settings.autoscan = normalizeAutoscanSources(appDoc.settings.autoscan);
     appDoc.settings.libraryView = normalizeLibraryViewSettings(appDoc.settings.libraryView);
+    appDoc.settings.favoritesView = normalizeFavoritesViewSettings(appDoc.settings.favoritesView);
     appDoc.settings.windowBounds = {
         ...DEFAULT_WINDOW_BOUNDS,
         ...(appDoc.settings.windowBounds || {}),
@@ -770,6 +785,9 @@ app.whenReady().then(async val => {
         appDoc.settings.libraryView = settings.libraryView === undefined
             ? normalizeLibraryViewSettings(appDoc.settings.libraryView)
             : normalizeLibraryViewSettings(settings.libraryView);
+        appDoc.settings.favoritesView = settings.favoritesView === undefined
+            ? normalizeFavoritesViewSettings(appDoc.settings.favoritesView)
+            : normalizeFavoritesViewSettings(settings.favoritesView);
         db.instance.App.update(appDoc);
         igdb.setCredentialsProvider(getIgdbCredentials);
         applyAppSettings(appDoc.settings);
@@ -1028,6 +1046,9 @@ app.whenReady().then(async val => {
                 args: launch.args || ""
             },
         };
+        if (gameInput.favorite) {
+            gameInput.favoritedAt = Date.now();
+        }
 
         const game = db.instance.Game.insert(gameInput);
         game.metadata = await cacheMetadataImages(input.metadata, game.id);
@@ -1052,7 +1073,13 @@ app.whenReady().then(async val => {
         if (localSource) {
             game.name = name;
         }
+        const wasFavorite = Boolean(game.favorite);
         game.favorite = Boolean(input.favorite);
+        if (game.favorite && !wasFavorite) {
+            game.favoritedAt = Date.now();
+        } else if (!game.favorite) {
+            delete game.favoritedAt;
+        }
         game.metadata = await cacheMetadataImages(input.metadata, game.id);
 
         if (localSource) {
@@ -1195,6 +1222,11 @@ app.whenReady().then(async val => {
         }
 
         game.favorite = !Boolean(game.favorite);
+        if (game.favorite) {
+            game.favoritedAt = Date.now();
+        } else {
+            delete game.favoritedAt;
+        }
         db.instance.Game.update(game);
         await saveDatabase();
 
