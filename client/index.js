@@ -38,6 +38,13 @@ const state = {
   pendingUnhideGameIds: new Set(),
   launchingGameIds: new Set(),
   isInspectingGameFile: false,
+  libraryView: {
+    source: "all",
+    sort: "name",
+    groupedBySource: false,
+  },
+  enabledAutoscanSources: ["steam", "epic", "ubisoft", "gog"],
+  libraryViewSaveTimer: null,
 };
 
 const heroDock = document.querySelector("#heroDock");
@@ -147,10 +154,19 @@ const gameArgsField = document.querySelector("#gameArgsField");
 const navButtons = [...document.querySelectorAll(".nav-button[data-page]")];
 const rssFallbackImage = "./images/playdock_logo.svg";
 const autoscanSourceOptions = [
-  { source: "steam", input: autoscanSteamInput },
-  { source: "epic", input: autoscanEpicInput },
-  { source: "ubisoft", input: autoscanUbisoftInput },
-  { source: "gog", input: autoscanGogInput },
+  { source: "steam", label: "Steam", input: autoscanSteamInput },
+  { source: "epic", label: "Epic Games", input: autoscanEpicInput },
+  { source: "ubisoft", label: "Ubisoft Connect", input: autoscanUbisoftInput },
+  { source: "gog", label: "GOG", input: autoscanGogInput },
+];
+const librarySourceOptions = [
+  { source: "all", label: "All Sources" },
+  { source: "local", label: "Local" },
+];
+const librarySortOptions = [
+  { sort: "name", label: "Name" },
+  { sort: "created", label: "Date Added" },
+  { sort: "source", label: "Source" },
 ];
 
 const fallbackDescriptions = [
@@ -180,6 +196,21 @@ function cleanText(value) {
 
 function isLocalSource(source) {
   return !source || source === "local";
+}
+
+function normalizeSource(source) {
+  return String(source || "local").trim().toLowerCase() || "local";
+}
+
+function sourceLabel(source) {
+  const option = [...librarySourceOptions, ...autoscanSourceOptions].find((item) => item.source === normalizeSource(source));
+  return option ? option.label : cleanText(source || "Local");
+}
+
+function sourceOrder(source) {
+  const sourceOptions = getLibrarySourceOptions();
+  const index = sourceOptions.findIndex((item) => item.source === normalizeSource(source));
+  return index < 0 ? sourceOptions.length : index;
 }
 
 function hashString(value) {
@@ -350,6 +381,82 @@ function makeShelves(games) {
   ].filter((shelf) => shelf.games.length > 0);
 }
 
+function normalizeLibraryViewSettings(value = {}, enabledAutoscanSources = state.enabledAutoscanSources) {
+  const source = normalizeSource(value.source || "all");
+  const sort = String(value.sort || "name").trim().toLowerCase();
+  const sourceOptions = getLibrarySourceOptions(enabledAutoscanSources);
+
+  return {
+    source: sourceOptions.some((option) => option.source === source) ? source : "all",
+    sort: librarySortOptions.some((option) => option.sort === sort) ? sort : "name",
+    groupedBySource: Boolean(value.groupedBySource),
+  };
+}
+
+function applyLibraryViewSettings(value = {}) {
+  state.libraryView = normalizeLibraryViewSettings(value);
+}
+
+function applyEnabledAutoscanSources(value) {
+  state.enabledAutoscanSources = normalizeAutoscanSources(value);
+  state.libraryView = normalizeLibraryViewSettings(state.libraryView);
+}
+
+function getLibrarySourceOptions(enabledAutoscanSources = state.enabledAutoscanSources) {
+  const enabledSources = new Set(enabledAutoscanSources);
+  return [
+    ...librarySourceOptions,
+    ...autoscanSourceOptions
+      .filter((option) => enabledSources.has(option.source))
+      .map(({ source, label }) => ({ source, label })),
+  ];
+}
+
+function gameCreatedTime(game) {
+  const created = game && game.meta ? Number(game.meta.created) : 0;
+  return Number.isFinite(created) && created > 0 ? created : Number.MAX_SAFE_INTEGER;
+}
+
+function compareGamesByName(a, b) {
+  return String(a.title || a.name || "").localeCompare(String(b.title || b.name || ""));
+}
+
+function getFullLibraryGames(games) {
+  const view = normalizeLibraryViewSettings(state.libraryView);
+  const sourceFilteredGames = view.source === "all"
+    ? games
+    : games.filter((game) => normalizeSource(game.launch && game.launch.source) === view.source);
+  const sortedGames = [...sourceFilteredGames];
+
+  if (view.sort === "created") {
+    sortedGames.sort((a, b) => gameCreatedTime(a) - gameCreatedTime(b) || compareGamesByName(a, b));
+  } else if (view.sort === "source") {
+    sortedGames.sort((a, b) => {
+      const sourceDifference = sourceOrder(a.launch && a.launch.source) - sourceOrder(b.launch && b.launch.source);
+      return sourceDifference || compareGamesByName(a, b);
+    });
+  } else {
+    sortedGames.sort(compareGamesByName);
+  }
+
+  return sortedGames;
+}
+
+function groupGamesBySource(games) {
+  const groups = new Map();
+  games.forEach((game) => {
+    const source = normalizeSource(game.launch && game.launch.source);
+    if (!groups.has(source)) {
+      groups.set(source, []);
+    }
+    groups.get(source).push(game);
+  });
+
+  return [...groups.entries()]
+    .sort(([leftSource], [rightSource]) => sourceOrder(leftSource) - sourceOrder(rightSource))
+    .map(([source, sourceGames]) => ({ source, games: sourceGames }));
+}
+
 function render() {
   if (state.page === "rss") {
     renderRssFeed();
@@ -378,6 +485,7 @@ function render() {
   const hero = games.find((game) => String(game.id) === String(state.selectedGameId)) || games[0];
   state.selectedGameId = hero.id;
   const shelves = makeShelves(games);
+  const fullLibraryGames = getFullLibraryGames(games);
 
   setLibraryIntroVisible(true);
   heroDock.innerHTML = renderHero(hero);
@@ -388,15 +496,15 @@ function render() {
       <div class="section-header">
         <div>
           <h2 class="section-title">Full Library</h2>
-          <p class="section-subtitle">${games.length} matching games</p>
+          <p class="section-subtitle">${fullLibraryGames.length} of ${games.length} matching games</p>
         </div>
+        ${renderFullLibraryControls()}
       </div>
-      <div class="library-grid">
-        ${games.map(renderGameCard).join("")}
-      </div>
+      ${renderFullLibraryContent(fullLibraryGames)}
     </section>
   `;
 
+  bindFullLibraryControls();
   bindGameCards();
 }
 
@@ -903,6 +1011,117 @@ function renderShelf(shelf) {
         ${shelf.games.map(renderGameCard).join("")}
       </div>
     </section>`;
+}
+
+function renderFullLibraryControls() {
+  const view = normalizeLibraryViewSettings(state.libraryView);
+  const sourceOptions = getLibrarySourceOptions();
+
+  return `
+    <div class="library-controls" aria-label="Full library controls">
+      <label class="library-control">
+        <span>Source</span>
+        <select class="library-control-select" data-library-view-control="source">
+          ${sourceOptions.map((option) => `
+            <option value="${escapeAttribute(option.source)}"${view.source === option.source ? " selected" : ""}>${escapeHtml(option.label)}</option>
+          `).join("")}
+        </select>
+      </label>
+      <label class="library-control">
+        <span>Sort</span>
+        <select class="library-control-select" data-library-view-control="sort">
+          ${librarySortOptions.map((option) => `
+            <option value="${escapeAttribute(option.sort)}"${view.sort === option.sort ? " selected" : ""}>${escapeHtml(option.label)}</option>
+          `).join("")}
+        </select>
+      </label>
+      <label class="library-group-toggle">
+        <input class="settings-toggle" type="checkbox" data-library-view-control="groupedBySource"${view.groupedBySource ? " checked" : ""}>
+        <span>Group by source</span>
+      </label>
+    </div>`;
+}
+
+function renderFullLibraryContent(games) {
+  if (!games.length) {
+    return `
+      <div class="empty-state library-empty-state">
+        <div>
+          <strong>No games in this view</strong>
+          <p>Change the Full Library source filter to show more games.</p>
+        </div>
+      </div>`;
+  }
+
+  if (state.libraryView.groupedBySource) {
+    return `
+      <div class="library-source-groups">
+        ${groupGamesBySource(games).map(renderFullLibrarySourceGroup).join("")}
+      </div>`;
+  }
+
+  return `
+    <div class="library-grid">
+      ${games.map(renderGameCard).join("")}
+    </div>`;
+}
+
+function renderFullLibrarySourceGroup(group) {
+  return `
+    <section class="library-source-group">
+      <div class="library-source-header">
+        <h3>${escapeHtml(sourceLabel(group.source))}</h3>
+        <span>${group.games.length} game${group.games.length === 1 ? "" : "s"}</span>
+      </div>
+      <div class="library-grid">
+        ${group.games.map(renderGameCard).join("")}
+      </div>
+    </section>`;
+}
+
+function bindFullLibraryControls() {
+  document.querySelectorAll("[data-library-view-control]:not([data-bound-library-view])").forEach((control) => {
+    control.dataset.boundLibraryView = "true";
+    control.addEventListener("change", () => {
+      const key = control.dataset.libraryViewControl;
+      const value = control.type === "checkbox" ? control.checked : control.value;
+      state.libraryView = normalizeLibraryViewSettings({
+        ...state.libraryView,
+        [key]: value,
+      });
+      render();
+      queueLibraryViewSettingsSave();
+    });
+  });
+}
+
+function queueLibraryViewSettingsSave() {
+  if (state.libraryViewSaveTimer) {
+    window.clearTimeout(state.libraryViewSaveTimer);
+  }
+
+  state.libraryViewSaveTimer = window.setTimeout(() => {
+    state.libraryViewSaveTimer = null;
+    saveLibraryViewSettings();
+  }, 350);
+}
+
+async function saveLibraryViewSettings() {
+  try {
+    const appDoc = await window.electronAPI.getApp();
+    const settings = appDoc && appDoc.settings ? appDoc.settings : {};
+    await window.electronAPI.updateAppSettings({
+      runOnStartup: Boolean(settings.runOnStartup),
+      closeToTray: settings.closeToTray !== false,
+      igdb: settings.igdb || {},
+      rssUrls: settings.rssUrls || [],
+      autoscan: settings.autoscan,
+      libraryView: state.libraryView,
+      showTips: appDoc ? appDoc.showTips !== false : true,
+    });
+  } catch (error) {
+    console.error("Could not save library view settings.", error);
+  }
 }
 
 function renderGameCard(game) {
@@ -1715,6 +1934,10 @@ async function saveSettings() {
       : undefined;
     const nextAutoscanSources = getSelectedAutoscanSources();
     const autoscanSourcesChanged = !sameAutoscanSources(previousAutoscanSources, nextAutoscanSources);
+    const nextLibraryViewSettings = normalizeLibraryViewSettings(
+      previousAppDoc && previousAppDoc.settings ? previousAppDoc.settings.libraryView : state.libraryView,
+      nextAutoscanSources
+    );
     const igdbCredentialsChanged = previousIgdbSettings.clientId !== nextIgdbSettings.clientId
       || previousIgdbSettings.clientSecret !== nextIgdbSettings.clientSecret;
 
@@ -1724,8 +1947,11 @@ async function saveSettings() {
       igdb: nextIgdbSettings,
       rssUrls: previousAppDoc && previousAppDoc.settings ? previousAppDoc.settings.rssUrls : [],
       autoscan: nextAutoscanSources,
+      libraryView: nextLibraryViewSettings,
       showTips: showTipsInput.checked,
     });
+    applyEnabledAutoscanSources(nextAutoscanSources);
+    state.libraryView = nextLibraryViewSettings;
 
     for (const gameId of state.pendingUnhideGameIds) {
       const game = await window.electronAPI.unhideGame(gameId);
@@ -1783,6 +2009,7 @@ async function saveRssSettings() {
       igdb: previousSettings.igdb || {},
       rssUrls: nextRssUrls,
       autoscan: previousSettings.autoscan,
+      libraryView: previousSettings.libraryView,
       showTips: previousAppDoc ? previousAppDoc.showTips !== false : true,
     });
 
@@ -2312,9 +2539,9 @@ function bindControls() {
 
   document.addEventListener("click", (event) => {
     closeAddGameMenu();
+    const target = event.target;
     if (!state.openDetailsGameId) return;
 
-    const target = event.target;
     if (!(target instanceof Element)) return;
     if (target.closest("#detailDrawer")) return;
     if (target.closest("[data-details-game]")) return;
@@ -2527,6 +2754,9 @@ async function init() {
   try {
     await ensureTermsAccepted();
     await ensureIgdbSettingsReady();
+    const appDoc = await window.electronAPI.getApp();
+    applyEnabledAutoscanSources(appDoc && appDoc.settings ? appDoc.settings.autoscan : undefined);
+    applyLibraryViewSettings(appDoc && appDoc.settings ? appDoc.settings.libraryView : {});
 
     await loadGames();
   } catch (error) {

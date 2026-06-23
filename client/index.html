@@ -800,6 +800,7 @@
       align-items: end;
       justify-content: space-between;
       gap: 16px;
+      flex-wrap: wrap;
       margin-bottom: 14px;
     }
 
@@ -813,6 +814,101 @@
       margin: 4px 0 0;
       color: var(--muted);
       font-size: 13px;
+    }
+
+    .library-controls {
+      display: flex;
+      align-items: end;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .library-control {
+      display: grid;
+      gap: 5px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .library-control-select {
+      min-width: 132px;
+      height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0 34px 0 11px;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.07);
+      outline: none;
+      cursor: pointer;
+    }
+
+    .library-control-select:focus {
+      border-color: rgba(0, 209, 167, 0.7);
+      box-shadow: 0 0 0 2px rgba(0, 209, 167, 0.16);
+    }
+
+    .library-control-select:hover {
+      border-color: rgba(255, 255, 255, 0.32);
+    }
+
+    .library-control-select option {
+      color: var(--text);
+      background: var(--panel);
+      padding: 14px 12px;
+      line-height: 1.75;
+      border-bottom: 4px solid var(--panel);
+    }
+
+    .library-group-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0 11px;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.06);
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .library-source-groups {
+      display: grid;
+      gap: 28px;
+    }
+
+    .library-source-group {
+      display: grid;
+      gap: 12px;
+    }
+
+    .library-source-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 8px;
+    }
+
+    .library-source-header h3 {
+      margin: 0;
+      color: var(--text);
+      font-size: 15px;
+      letter-spacing: 0;
+    }
+
+    .library-source-header span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .library-empty-state {
+      min-height: 220px;
     }
 
     .rail {

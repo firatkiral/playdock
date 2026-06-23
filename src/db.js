@@ -94,6 +94,15 @@ const appShema = {
                 default: {},
             },
             autoscan: { type: ["String"], default: ["steam", "epic", "ubisoft", "gog"] },
+            libraryView: {
+                type: "Object",
+                schema: {
+                    source: { type: "String", default: "all" },
+                    sort: { type: "String", default: "name" },
+                    groupedBySource: { type: "Boolean", default: false },
+                },
+                default: {},
+            },
         },
         required: true,
         default: {},

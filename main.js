@@ -27,6 +27,11 @@ const APP_ICON_PATH = path.join(__dirname, 'client', 'images', 'playdock_logo.pn
 const APP_SHORTCUT_ICON_PATH = path.join(__dirname, 'client', 'images', 'icon.ico');
 const DEFAULT_WINDOW_BOUNDS = { width: 1280, height: 720, isMaximized: false };
 const AUTOSCAN_SOURCES = ["steam", "epic", "ubisoft", "gog"];
+const DEFAULT_LIBRARY_VIEW_SETTINGS = {
+    source: "all",
+    sort: "name",
+    groupedBySource: false,
+};
 const DEFAULTS_PATH = path.join(__dirname, 'defaults.json');
 let saveWindowBoundsTimer = null;
 const folderScanJobs = new Map();
@@ -410,6 +415,17 @@ function normalizeAutoscanSources(value) {
     ));
 }
 
+function normalizeLibraryViewSettings(value = {}) {
+    const source = String(value.source || DEFAULT_LIBRARY_VIEW_SETTINGS.source).trim().toLowerCase();
+    const sort = String(value.sort || DEFAULT_LIBRARY_VIEW_SETTINGS.sort).trim().toLowerCase();
+
+    return {
+        source: ["all", "local", ...AUTOSCAN_SOURCES].includes(source) ? source : DEFAULT_LIBRARY_VIEW_SETTINGS.source,
+        sort: ["name", "created", "source"].includes(sort) ? sort : DEFAULT_LIBRARY_VIEW_SETTINGS.sort,
+        groupedBySource: Boolean(value.groupedBySource),
+    };
+}
+
 function createDefaultAppDoc() {
     return {
         name: "PlayDock",
@@ -425,6 +441,7 @@ function createDefaultAppDoc() {
             },
             rssUrls: getDefaultRssUrls(),
             autoscan: [...AUTOSCAN_SOURCES],
+            libraryView: { ...DEFAULT_LIBRARY_VIEW_SETTINGS },
             windowBounds: { ...DEFAULT_WINDOW_BOUNDS },
         },
     };
@@ -440,6 +457,7 @@ function ensureAppDocSettings(appDoc) {
     appDoc.settings.igdb.clientSecret = String(appDoc.settings.igdb.clientSecret || '');
     appDoc.settings.rssUrls = normalizeRssUrls(appDoc.settings.rssUrls);
     appDoc.settings.autoscan = normalizeAutoscanSources(appDoc.settings.autoscan);
+    appDoc.settings.libraryView = normalizeLibraryViewSettings(appDoc.settings.libraryView);
     appDoc.settings.windowBounds = {
         ...DEFAULT_WINDOW_BOUNDS,
         ...(appDoc.settings.windowBounds || {}),
@@ -749,6 +767,9 @@ app.whenReady().then(async val => {
         appDoc.settings.autoscan = settings.autoscan === undefined
             ? normalizeAutoscanSources(appDoc.settings.autoscan)
             : normalizeAutoscanSources(settings.autoscan);
+        appDoc.settings.libraryView = settings.libraryView === undefined
+            ? normalizeLibraryViewSettings(appDoc.settings.libraryView)
+            : normalizeLibraryViewSettings(settings.libraryView);
         db.instance.App.update(appDoc);
         igdb.setCredentialsProvider(getIgdbCredentials);
         applyAppSettings(appDoc.settings);
