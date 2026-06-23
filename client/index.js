@@ -126,6 +126,10 @@ const igdbTestFeedback = document.querySelector("#igdbTestFeedback");
 const rssSettingsUrlsInput = document.querySelector("#rssSettingsUrlsInput");
 const rssSettingsFeedback = document.querySelector("#rssSettingsFeedback");
 const showTipsInput = document.querySelector("#showTipsInput");
+const autoscanSteamInput = document.querySelector("#autoscanSteamInput");
+const autoscanEpicInput = document.querySelector("#autoscanEpicInput");
+const autoscanUbisoftInput = document.querySelector("#autoscanUbisoftInput");
+const autoscanGogInput = document.querySelector("#autoscanGogInput");
 const pinToStartButton = document.querySelector("#pinToStartButton");
 const createDesktopShortcutButton = document.querySelector("#createDesktopShortcutButton");
 const shortcutFeedback = document.querySelector("#shortcutFeedback");
@@ -142,6 +146,12 @@ const gameExeField = document.querySelector("#gameExeField");
 const gameArgsField = document.querySelector("#gameArgsField");
 const navButtons = [...document.querySelectorAll(".nav-button[data-page]")];
 const rssFallbackImage = "./images/playdock_logo.svg";
+const autoscanSourceOptions = [
+  { source: "steam", input: autoscanSteamInput },
+  { source: "epic", input: autoscanEpicInput },
+  { source: "ubisoft", input: autoscanUbisoftInput },
+  { source: "gog", input: autoscanGogInput },
+];
 
 const fallbackDescriptions = [
   "Ready when you are. Launch straight in or open details to check what is installed.",
@@ -418,6 +428,52 @@ function sameRssUrls(firstValue, secondValue) {
   const first = normalizeRssUrls(firstValue);
   const second = normalizeRssUrls(secondValue);
   return first.length === second.length && first.every((value, index) => value === second[index]);
+}
+
+function normalizeAutoscanSources(value) {
+  const validSources = autoscanSourceOptions.map((option) => option.source);
+
+  if (!Array.isArray(value)) {
+    return validSources;
+  }
+
+  return [...new Set(
+    value
+      .map((entry) => String(entry || "").trim().toLowerCase())
+      .filter((entry) => validSources.includes(entry))
+  )];
+}
+
+function sameAutoscanSources(firstValue, secondValue) {
+  const first = normalizeAutoscanSources(firstValue);
+  const second = normalizeAutoscanSources(secondValue);
+  const secondSet = new Set(second);
+  return first.length === second.length && first.every((value) => secondSet.has(value));
+}
+
+function setAutoscanInputs(value) {
+  const enabledSources = new Set(normalizeAutoscanSources(value));
+  autoscanSourceOptions.forEach(({ source, input }) => {
+    input.checked = enabledSources.has(source);
+  });
+}
+
+function getSelectedAutoscanSources() {
+  return autoscanSourceOptions
+    .filter(({ input }) => input.checked)
+    .map(({ source }) => source);
+}
+
+async function loadGames({ hydrate = true } = {}) {
+  const games = await window.electronAPI.getGames();
+  state.games = games.map(normalizeGame).sort((a, b) => a.title.localeCompare(b.title));
+  render();
+
+  if (hydrate && state.igdbStatus && state.igdbStatus.ok) {
+    hydrateMetadata();
+  } else {
+    updateReadyStatus();
+  }
 }
 
 function setHeaderStatus(message, kind = "default") {
@@ -1544,6 +1600,7 @@ async function openSettingsModal() {
   igdbClientIdInput.value = igdbSettings.clientId || "";
   igdbClientSecretInput.value = igdbSettings.clientSecret || "";
   showTipsInput.checked = appDoc ? appDoc.showTips !== false : true;
+  setAutoscanInputs(settings.autoscan);
   renderHiddenGames(hiddenGames);
   setIgdbTestFeedback("");
   setShortcutFeedback("");
@@ -1653,6 +1710,11 @@ async function saveSettings() {
       clientId: igdbClientIdInput.value.trim(),
       clientSecret: igdbClientSecretInput.value.trim(),
     };
+    const previousAutoscanSources = previousAppDoc && previousAppDoc.settings
+      ? previousAppDoc.settings.autoscan
+      : undefined;
+    const nextAutoscanSources = getSelectedAutoscanSources();
+    const autoscanSourcesChanged = !sameAutoscanSources(previousAutoscanSources, nextAutoscanSources);
     const igdbCredentialsChanged = previousIgdbSettings.clientId !== nextIgdbSettings.clientId
       || previousIgdbSettings.clientSecret !== nextIgdbSettings.clientSecret;
 
@@ -1661,6 +1723,7 @@ async function saveSettings() {
       closeToTray: closeToTrayInput.checked,
       igdb: nextIgdbSettings,
       rssUrls: previousAppDoc && previousAppDoc.settings ? previousAppDoc.settings.rssUrls : [],
+      autoscan: nextAutoscanSources,
       showTips: showTipsInput.checked,
     });
 
@@ -1678,7 +1741,12 @@ async function saveSettings() {
     state.games.sort((a, b) => a.title.localeCompare(b.title));
 
     closeSettingsModalPanel();
-    render();
+    if (autoscanSourcesChanged) {
+      setHeaderStatus("Updating library");
+      await loadGames({ hydrate: false });
+    } else {
+      render();
+    }
 
     const igdbStatus = await window.electronAPI.getIgdbStatus();
     setIgdbStatus(igdbStatus);
@@ -1687,7 +1755,7 @@ async function saveSettings() {
       return;
     }
 
-    if (igdbCredentialsChanged) {
+    if (igdbCredentialsChanged || autoscanSourcesChanged) {
       hydrateMetadata();
     }
   } catch (error) {
@@ -1714,6 +1782,7 @@ async function saveRssSettings() {
       closeToTray: previousSettings.closeToTray !== false,
       igdb: previousSettings.igdb || {},
       rssUrls: nextRssUrls,
+      autoscan: previousSettings.autoscan,
       showTips: previousAppDoc ? previousAppDoc.showTips !== false : true,
     });
 
@@ -2459,14 +2528,7 @@ async function init() {
     await ensureTermsAccepted();
     await ensureIgdbSettingsReady();
 
-    const games = await window.electronAPI.getGames();
-    state.games = games.map(normalizeGame).sort((a, b) => a.title.localeCompare(b.title));
-    render();
-    if (state.igdbStatus && state.igdbStatus.ok) {
-      hydrateMetadata();
-    } else {
-      updateReadyStatus();
-    }
+    await loadGames();
   } catch (error) {
     console.error(error);
     setLibraryIntroVisible(false);

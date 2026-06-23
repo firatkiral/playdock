@@ -26,6 +26,7 @@ const METADATA_PATH = path.join(APP_LOCAL_PATH, 'metadata');
 const APP_ICON_PATH = path.join(__dirname, 'client', 'images', 'playdock_logo.png');
 const APP_SHORTCUT_ICON_PATH = path.join(__dirname, 'client', 'images', 'icon.ico');
 const DEFAULT_WINDOW_BOUNDS = { width: 1280, height: 720, isMaximized: false };
+const AUTOSCAN_SOURCES = ["steam", "epic", "ubisoft", "gog"];
 const DEFAULTS_PATH = path.join(__dirname, 'defaults.json');
 let saveWindowBoundsTimer = null;
 const folderScanJobs = new Map();
@@ -358,13 +359,13 @@ function getDefaultRssUrls() {
 
 function normalizeAutoscanSources(value) {
     if (!Array.isArray(value)) {
-        return ["steam", "epic", "ubisoft", "gog"];
+        return [...AUTOSCAN_SOURCES];
     }
 
     return Array.from(new Set(
         value
             .map((entry) => String(entry || '').trim().toLowerCase())
-            .filter(Boolean)
+            .filter((entry) => AUTOSCAN_SOURCES.includes(entry))
     ));
 }
 
@@ -382,7 +383,7 @@ function createDefaultAppDoc() {
                 clientSecret: "",
             },
             rssUrls: getDefaultRssUrls(),
-            autoscan: ["steam", "epic", "ubisoft", "gog"],
+            autoscan: [...AUTOSCAN_SOURCES],
             windowBounds: { ...DEFAULT_WINDOW_BOUNDS },
         },
     };
@@ -704,6 +705,9 @@ app.whenReady().then(async val => {
         appDoc.settings.igdb.clientId = String(settings.igdb?.clientId || '').trim();
         appDoc.settings.igdb.clientSecret = String(settings.igdb?.clientSecret || '').trim();
         appDoc.settings.rssUrls = nextRssUrls;
+        appDoc.settings.autoscan = settings.autoscan === undefined
+            ? normalizeAutoscanSources(appDoc.settings.autoscan)
+            : normalizeAutoscanSources(settings.autoscan);
         db.instance.App.update(appDoc);
         igdb.setCredentialsProvider(getIgdbCredentials);
         applyAppSettings(appDoc.settings);
