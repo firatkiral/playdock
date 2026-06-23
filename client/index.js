@@ -5,6 +5,7 @@ const state = {
   view: "all",
   search: "",
   selectedGameId: null,
+  userSelectedGameId: false,
   openDetailsGameId: null,
   metadataLoaded: 0,
   metadataTotal: 0,
@@ -457,6 +458,23 @@ function groupGamesBySource(games) {
     .map(([source, sourceGames]) => ({ source, games: sourceGames }));
 }
 
+function chooseAutoSelectedGame(games, fullLibraryGames) {
+  const lastPlayedGame = games
+    .filter((game) => Number(game.lastPlayed) > 0)
+    .sort((a, b) => Number(b.lastPlayed) - Number(a.lastPlayed))[0];
+
+  if (lastPlayedGame) {
+    return lastPlayedGame;
+  }
+
+  const favoriteGame = games.find((game) => game.favorite);
+  if (favoriteGame) {
+    return favoriteGame;
+  }
+
+  return fullLibraryGames[0] || null;
+}
+
 function render() {
   if (state.page === "rss") {
     renderRssFeed();
@@ -469,6 +487,8 @@ function render() {
 
   if (!games.length) {
     stopHeroSlideshow();
+    state.selectedGameId = null;
+    state.userSelectedGameId = false;
     setLibraryIntroVisible(false);
     heroDock.innerHTML = "";
     shelvesContent.innerHTML = "";
@@ -482,10 +502,36 @@ function render() {
     return;
   }
 
-  const hero = games.find((game) => String(game.id) === String(state.selectedGameId)) || games[0];
-  state.selectedGameId = hero.id;
   const shelves = makeShelves(games);
   const fullLibraryGames = getFullLibraryGames(games);
+  let hero = games.find((game) => String(game.id) === String(state.selectedGameId));
+  if (!hero || !state.userSelectedGameId) {
+    hero = chooseAutoSelectedGame(games, fullLibraryGames);
+    state.selectedGameId = hero ? hero.id : null;
+    state.userSelectedGameId = false;
+  }
+
+  if (!hero) {
+    stopHeroSlideshow();
+    setLibraryIntroVisible(false);
+    heroDock.innerHTML = "";
+    shelvesContent.innerHTML = shelves.map(renderShelf).join("");
+    libraryContent.innerHTML = `
+      <section class="section">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">Full Library</h2>
+            <p class="section-subtitle">0 of ${games.length} matching games</p>
+          </div>
+          ${renderFullLibraryControls()}
+        </div>
+        ${renderFullLibraryContent(fullLibraryGames)}
+      </section>
+    `;
+    bindFullLibraryControls();
+    bindGameCards();
+    return;
+  }
 
   setLibraryIntroVisible(true);
   heroDock.innerHTML = renderHero(hero);
@@ -1226,6 +1272,7 @@ function selectGame(gameId) {
   if (!game) return;
 
   state.selectedGameId = game.id;
+  state.userSelectedGameId = true;
   state.heroSlideIndex = 0;
   closeDetails();
   render();
