@@ -87,6 +87,47 @@ function isLocalSource(source) {
     return !source || source === 'local';
 }
 
+function normalizeSource(source) {
+    return String(source || 'local').trim().toLowerCase() || 'local';
+}
+
+function normalizeGameName(name) {
+    return String(name || '').trim().toLowerCase();
+}
+
+function getScannedGameKeys(game) {
+    const source = normalizeSource(game && game.source);
+    const appId = String(game && game.appId ? game.appId : '').trim();
+    const name = normalizeGameName(game && game.name);
+    return [
+        appId ? `${source}:app:${appId}` : '',
+        name ? `${source}:name:${name}` : '',
+    ].filter(Boolean);
+}
+
+function getStoredGameKeys(game) {
+    const launch = game && game.launch ? game.launch : {};
+    const source = normalizeSource(launch.source);
+    const appId = String(launch.appId || '').trim();
+    const name = normalizeGameName(game && game.name);
+    return [
+        appId ? `${source}:app:${appId}` : '',
+        name ? `${source}:name:${name}` : '',
+    ].filter(Boolean);
+}
+
+function updateStoredLaunchFromScan(existingGame, scannedGame) {
+    existingGame.name = scannedGame.name || existingGame.name;
+    existingGame.launch = existingGame.launch || {};
+    existingGame.launch.appId = scannedGame.appId || existingGame.launch.appId || "";
+    existingGame.launch.source = scannedGame.source || existingGame.launch.source || "local";
+    existingGame.launch.installDir = scannedGame.installdir || existingGame.launch.installDir || "";
+    existingGame.launch.cmd = scannedGame.launchCmd || existingGame.launch.cmd || "";
+    existingGame.launch.exe = scannedGame.launchExe || existingGame.launch.exe || "";
+    existingGame.launch.args = scannedGame.launchArgs || existingGame.launch.args || "";
+    return existingGame;
+}
+
 function delay(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -798,10 +839,18 @@ app.whenReady().then(async val => {
             scannedGames.push(...await scanner.scan());
         }
 
+        const storedGames = db.instance.Game.find().docs();
         for (let game of scannedGames) {
-            const existingGame = db.instance.Game.exists({ name: game.name });
-            if (!existingGame) {
-                db.instance.Game.insert({
+            const scannedKeys = getScannedGameKeys(game);
+            const existingGame = storedGames.find((storedGame) => {
+                const storedKeys = getStoredGameKeys(storedGame);
+                return scannedKeys.some((key) => storedKeys.includes(key));
+            });
+
+            if (existingGame) {
+                db.instance.Game.update(updateStoredLaunchFromScan(existingGame, game));
+            } else {
+                const insertedGame = db.instance.Game.insert({
                     name: game.name,
                     launch: {
                         appId: game.appId,
@@ -812,17 +861,26 @@ app.whenReady().then(async val => {
                         args: game.launchArgs || ""
                     },
                 });
+                storedGames.push(insertedGame);
             }
         }
 
-        // Detect games removed from the PC and delete non-local (add by scanning) entries from the database
+        const scannedGameKeys = new Set(scannedGames.flatMap(getScannedGameKeys));
+
+        // Delete missing launcher games only for sources that were actually scanned.
         db.instance.Game.removeWhere(function (obj) {
-            if (obj.launch.source === "local") return false;
-            const stillInstalled = scannedGames.find(g => g.name === obj.name);
-            return !stillInstalled;
+            const source = normalizeSource(obj.launch && obj.launch.source);
+            if (isLocalSource(source)) return false;
+            if (!enabledSources.has(source)) return false;
+            return !getStoredGameKeys(obj).some((key) => scannedGameKeys.has(key));
         });
 
-        return db.instance.Game.find().docs();
+        return db.instance.Game.find({
+            '$or': [
+                { 'launch.source': { '$in': ['local', ...enabledSources] } },
+                { 'launch.source': { '$exists': false } },
+            ],
+        }).docs();
     });
 
     ipcMain.handle('get-metadata', async (event, gameId) => {
