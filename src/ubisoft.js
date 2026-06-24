@@ -35,14 +35,14 @@ async function readUbisoftGameKey(keyPath) {
             const match = stdout.match(/InstallDir\s+REG_SZ\s+(.+)/);
             if (!match) return resolve(null);
 
-            const appid = path.basename(keyPath);
+            const appId = path.basename(keyPath);
             const installdir = match[1].trim();
             const name = path.basename(installdir);
-            const launchCmd = `uplay://launch/${appid}/0`
+            const launchCmd = `uplay://launch/${appId}/0`
 
             resolve({
                 source: "ubisoft",
-                appid,
+                appId,
                 name,
                 installdir,
                 launchCmd,

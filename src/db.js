@@ -133,7 +133,7 @@ const gameSchema = {
     launch: {
         type: "Object",
         schema: {
-            appId: { type: "String", default: "" }, // steam appid, epic product id, etc.
+            appId: { type: "String", default: "" }, // steam appId, epic product id, etc.
             source: { type: "String", default: "local" }, // steam, epic, gog, local, etc.
             installDir: { type: "String", default: "" },
             cmd: { type: "String", default: "" },

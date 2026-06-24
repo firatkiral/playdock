@@ -107,7 +107,7 @@ function getGameNameFromExe(exePath) {
             const launchExe = path.basename(fullPath);
             resolve({
                 source: "local",
-                appid: "",
+                appId: "",
                 name,
                 installdir,
                 launchCmd,
@@ -168,7 +168,7 @@ function getGameFromShortcut(shortcutPath) {
             // Helper to build default game object
             const makeDefault = (nameVal) => ({
                 source: "local",
-                appid: '',
+                appId: '',
                 name: nameVal || desc || path.basename(target),
                 installdir: startIn || path.dirname(target),
                 launchCmd: target,
@@ -181,7 +181,7 @@ function getGameFromShortcut(shortcutPath) {
                 getGameNameFromExe(target).then(game => {
                     // Prefer the FileDescription name, but fall back to shortcut description
                     game.source = "local";
-                    game.appid = '';
+                    game.appId = '';
                     game.name = game.name || desc || path.basename(target);
                     game.installdir = startIn || game.installdir || path.dirname(target);
                     game.launchCmd = target;
@@ -234,7 +234,7 @@ function getGameFromUrl(urlFilePath) {
 
             const makeDefault = () => ({
                 source: "local",
-                appid: '',
+                appId: '',
                 name: desc,
                 installdir: "",
                 launchCmd: target,
@@ -251,7 +251,7 @@ function getGameFromUrl(urlFilePath) {
 
                 getGameNameFromExe(exePath).then(game => {
                     game.source = "local";
-                    game.appid = '';
+                    game.appId = '';
                     game.name = game.name || desc;
                     game.installdir = game.installdir || path.dirname(exePath);
                     game.launchCmd = exePath;

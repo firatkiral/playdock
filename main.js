@@ -1282,7 +1282,7 @@ async function inspectGamePath(filePath) {
         favorite: false,
         sourcePath: fullPath,
         launch: {
-            appId: game.appid || "",
+            appId: game.appId || "",
             source: "local",
             installDir: game.installdir || "",
             cmd: game.launchCmd || fullPath,

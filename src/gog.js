@@ -31,7 +31,7 @@ function readGOGGameKey(keyPath) {
         exec(`reg query "${keyPath}"`, (err, stdout) => {
             if (err || !stdout) return resolve(null);
 
-            const appid = keyPath.split("\\").pop();
+            const appId = keyPath.split("\\").pop();
 
             const installDirMatch = stdout.match(/path\s+REG_SZ\s+(.+)/i);
             const exeMatch         = stdout.match(/exeFile\s+REG_SZ\s+(.+)/i);
@@ -39,13 +39,13 @@ function readGOGGameKey(keyPath) {
 
             const installDir = installDirMatch ? installDirMatch[1].trim() : null;
             const launchExe    = exeMatch ? exeMatch[1].trim() : null;
-            const name   = nameMatch ? nameMatch[1].trim() : `GOG Game ${appid}`;
+            const name   = nameMatch ? nameMatch[1].trim() : `GOG Game ${appId}`;
 
             if (!installDir) return resolve(null);
 
             resolve({
                 source: "gog",
-                appid,
+                appId,
                 name,
                 installDir,
                 launchExe,

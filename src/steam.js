@@ -63,7 +63,7 @@ async function getInstalledGames() {
             
             games.push({
                 source: "steam",
-                appid: data.appid,
+                appId: data.appid,
                 name: data.name,
                 installdir: path.join(steamapps, "common", data.installdir),
                 launchCmd: `steam://rungameid/${data.appid}`,

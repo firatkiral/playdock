@@ -45,7 +45,7 @@ async function getInstalledGames() {
 
             games.push({
                 source: "epic",
-                appid: data.CatalogItemId,
+                appId: data.CatalogItemId,
                 name: data.DisplayName,
                 installdir: data.InstallLocation,
                 launchCmd: `com.epicgames.launcher://apps/${data.AppName}?action=launch&silent=true`,
