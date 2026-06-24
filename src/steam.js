@@ -22,18 +22,23 @@ function getSteamInstallPath() {
 
 function getLibraryPaths(steamPath) {
     const libraryVDF = path.join(steamPath, "steamapps", "libraryfolders.vdf");
-    const content = fs.readFileSync(libraryVDF, "utf-8");
-    const parsed = vdf.parse(content);
+    try {
+        const content = fs.readFileSync(libraryVDF, "utf-8");
+        const parsed = vdf.parse(content);
+        const libraryFolders = parsed && parsed.libraryfolders ? parsed.libraryfolders : {};
 
-    const libraries = [];
+        const libraries = [];
 
-    for (const key in parsed.libraryfolders) {
-        if (!isNaN(key)) {
-            libraries.push(parsed.libraryfolders[key].path);
+        for (const key in libraryFolders) {
+            if (!isNaN(key) && libraryFolders[key] && libraryFolders[key].path) {
+                libraries.push(libraryFolders[key].path);
+            }
         }
-    }
 
-    return libraries;
+        return libraries;
+    } catch (error) {
+        return [];
+    }
 }
 
 async function getInstalledGames() {
@@ -48,12 +53,27 @@ async function getInstalledGames() {
         const steamapps = path.join(lib, "steamapps");
         if (!fs.existsSync(steamapps)) return;
 
-        const files = fs.readdirSync(steamapps)
-            .filter(f => f.startsWith("appmanifest") && f.endsWith(".acf"));
+        let files = [];
+        try {
+            files = fs.readdirSync(steamapps)
+                .filter(f => f.startsWith("appmanifest") && f.endsWith(".acf"));
+        } catch (error) {
+            return;
+        }
 
         files.forEach(file => {
-            const content = fs.readFileSync(path.join(steamapps, file), "utf-8");
-            const data = vdf.parse(content).AppState;
+            let data;
+            try {
+                const content = fs.readFileSync(path.join(steamapps, file), "utf-8");
+                const parsed = vdf.parse(content);
+                data = parsed && parsed.AppState ? parsed.AppState : null;
+            } catch (error) {
+                return;
+            }
+
+            if (!data || !data.name || !data.appid || !data.installdir) {
+                return;
+            }
 
             // skip steam apps
             const nonGameIndicators = ["Steamworks", "SteamVR"];
