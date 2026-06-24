@@ -1,4 +1,4 @@
-const { exec } = require("child_process");
+const { exec, spawn } = require("child_process");
 const path = require("path");
 const fs = require("fs");
 const https = require('https');
@@ -45,15 +45,69 @@ function waitForProcessStart(processName, timeout = 15000, interval = 1000) {
     });
 }
 
+function unquote(value) {
+    const text = String(value || "").trim();
+    if (!text) return "";
+    if (text.length >= 2 && text.startsWith('"') && text.endsWith('"')) {
+        return text.slice(1, -1);
+    }
+    return text;
+}
+
+function parseLaunchArgs(rawArgs) {
+    const value = String(rawArgs || "").trim();
+    if (!value) return [];
+
+    const args = [];
+    const re = /"([^"\\]*(?:\\.[^"\\]*)*)"|([^\s]+)/g;
+    let match;
+
+    while ((match = re.exec(value)) !== null) {
+        if (typeof match[1] === "string") {
+            args.push(match[1].replace(/\\"/g, '"'));
+        } else if (typeof match[2] === "string") {
+            args.push(match[2]);
+        }
+    }
+
+    return args;
+}
+
+function isProtocolLaunchCommand(command) {
+    return /^[a-z][a-z0-9+.-]*:\/\//i.test(String(command || ""));
+}
+
 function executeLaunchCommand(game) {
     return new Promise((resolve, reject) => {
-        const command = `start "" /D "${game.installDir}" "${game.launchCmd}" ${game.launchArgs}`;
-        const child = exec(command, { windowsHide: true });
+        const launchCmd = unquote(game && game.launchCmd ? game.launchCmd : "");
+        if (!launchCmd) {
+            reject(new Error("missing-launch-command"));
+            return;
+        }
+
+        const launchArgs = parseLaunchArgs(game && game.launchArgs ? game.launchArgs : "");
+        const installDir = unquote(game && game.installDir ? game.installDir : "");
+
+        // Use one Windows START path for all launch types (exe/protocol/url)
+        // to keep behavior aligned with desktop shortcut launches.
+        const startArgs = ["/d", "/s", "/c", "start", ""];
+
+        if (installDir && !isProtocolLaunchCommand(launchCmd)) {
+            startArgs.push("/d", installDir);
+        }
+
+        startArgs.push(launchCmd, ...launchArgs);
+
+        const child = spawn("cmd.exe", startArgs, {
+            windowsHide: true,
+            stdio: "ignore"
+        });
 
         child.once("error", (error) => {
             console.error("Failed to launch game:", error);
             reject(error);
         });
+
         child.once("spawn", () => {
             resolve();
         });
