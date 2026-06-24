@@ -1694,6 +1694,11 @@ async function playGame(gameId) {
       );
       console.error("Could not launch game.", launchResult);
     } else {
+      try {
+        await window.electronAPI.minimizeWindow();
+      } catch (error) {
+        console.error("Could not minimize window after launch.", error);
+      }
       updateReadyStatus();
     }
   } catch (error) {
