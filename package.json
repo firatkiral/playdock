@@ -1,6 +1,6 @@
 {
   "name": "playdock",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "description": "Gaming hub for all PC games",
   "main": "main.js",
   "scripts": {
