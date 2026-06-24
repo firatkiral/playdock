@@ -38,7 +38,7 @@ function readGOGGameKey(keyPath) {
             const nameMatch        = stdout.match(/gameName\s+REG_SZ\s+(.+)/i);
 
             const installDir = installDirMatch ? installDirMatch[1].trim() : null;
-            const launchExe    = exeMatch ? exeMatch[1].trim() : null;
+            const launchExe = exeMatch ? exeMatch[1].trim() : "";
             const name   = nameMatch ? nameMatch[1].trim() : `GOG Game ${appId}`;
 
             if (!installDir) return resolve(null);
@@ -47,9 +47,9 @@ function readGOGGameKey(keyPath) {
                 source: "gog",
                 appId,
                 name,
-                installDir,
+                installdir: installDir,
                 launchExe,
-                launchCmd: `${path.join(installDir, launchExe)}`,
+                launchCmd: launchExe ? `${path.join(installDir, launchExe)}` : "",
                 launchArgs: ""
             });
         });
