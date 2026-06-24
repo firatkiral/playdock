@@ -31,7 +31,12 @@ async function getInstalledGames() {
 
     if (!fs.existsSync(manifestsDir)) return [];
 
-    const files = fs.readdirSync(manifestsDir).filter(f => f.endsWith(".item"));
+    let files = [];
+    try {
+        files = fs.readdirSync(manifestsDir).filter(f => f.endsWith(".item"));
+    } catch (error) {
+        return [];
+    }
 
     const games = [];
 

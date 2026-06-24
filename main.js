@@ -866,12 +866,21 @@ app.whenReady().then(async val => {
             { source: 'gog', scan: () => gog.getInstalledGames() },
         ];
         const scannedGames = [];
+        const scannedSources = new Set();
         for (const scanner of scanners) {
             if (!enabledSources.has(scanner.source)) {
                 continue;
             }
 
-            scannedGames.push(...await scanner.scan());
+            try {
+                const games = await scanner.scan();
+                if (Array.isArray(games) && games.length) {
+                    scannedGames.push(...games);
+                }
+                scannedSources.add(scanner.source);
+            } catch (error) {
+                console.warn(`Scanner failed for ${scanner.source}:`, error && error.message ? error.message : error);
+            }
         }
 
         const storedGames = db.instance.Game.find().docs();
@@ -906,7 +915,7 @@ app.whenReady().then(async val => {
         db.instance.Game.removeWhere(function (obj) {
             const source = normalizeSource(obj.launch && obj.launch.source);
             if (isLocalSource(source)) return false;
-            if (!enabledSources.has(source)) return false;
+            if (!scannedSources.has(source)) return false;
             return !getStoredGameKeys(obj).some((key) => scannedGameKeys.has(key));
         });
 
