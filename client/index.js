@@ -301,15 +301,33 @@ function fallbackArt(game) {
   return `url("data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}")`;
 }
 
-function imageBackground(game, preferred = "cover") {
-  let image = "";
-  if (preferred === "hero") {
-    image = getHeroSlideImage(game);
-  } else {
-    image = game.coverImage;
-  }
+function backgroundImageValueFromSource(value) {
+  const source = imageSourceForPath(value);
+  if (!source) return "";
+  return `url(${JSON.stringify(source)})`;
+}
 
-  return image ? `url("${image}")` : fallbackArt(game);
+function setElementBackgroundImage(element, source, { fallbackSource = "", fallbackCss = "" } = {}) {
+  if (!element) return;
+
+  const cssValue = backgroundImageValueFromSource(source)
+    || backgroundImageValueFromSource(fallbackSource)
+    || fallbackCss;
+
+  if (cssValue) {
+    element.style.backgroundImage = cssValue;
+  } else {
+    element.style.removeProperty("background-image");
+  }
+}
+
+function applyGameCardFallbackArt(context = document) {
+  context.querySelectorAll("[data-game-card-fallback]").forEach((element) => {
+    const gameId = element.getAttribute("data-game-card-fallback");
+    const game = state.games.find((candidate) => String(candidate.id) === String(gameId));
+    if (!game) return;
+    setElementBackgroundImage(element, "", { fallbackCss: fallbackArt(game) });
+  });
 }
 
 function getHeroImages(game) {
@@ -582,6 +600,7 @@ function render() {
     `;
     bindFullLibraryControls();
     bindFavoritesControls();
+    applyGameCardFallbackArt();
     bindGameCards();
     return;
   }
@@ -605,6 +624,7 @@ function render() {
 
   bindFullLibraryControls();
   bindFavoritesControls();
+  applyGameCardFallbackArt();
   bindGameCards();
 }
 
@@ -965,6 +985,9 @@ function openRssItem(itemKey) {
   state.openDetailsGameId = `rss:${rssItemKey(item)}`;
   drawerTitle.textContent = "Feed Preview";
   drawerContent.innerHTML = renderRssDrawer(item);
+  setElementBackgroundImage(drawerContent.querySelector("[data-rss-drawer-cover]"), rssImage(item), {
+    fallbackSource: rssFallbackImage,
+  });
   detailDrawer.classList.add("open");
   detailDrawer.setAttribute("aria-hidden", "false");
 
@@ -975,8 +998,7 @@ function openRssItem(itemKey) {
 }
 
 function renderRssDrawer(item) {
-  const image = rssImage(item);
-  const media = `<div class="drawer-cover rss-drawer-cover" style="background-image: url(&quot;${escapeAttribute(image)}&quot;)"></div>`;
+  const media = `<div class="drawer-cover rss-drawer-cover" data-rss-drawer-cover></div>`;
   const rows = [
     ["Source", item.source],
     ["Published", item.pubDate ? formatDate(item.pubDate) : ""],
@@ -1290,7 +1312,7 @@ function renderGameCard(game) {
   const isSelected = String(game.id) === String(state.selectedGameId);
   const media = game.coverImage
     ? `<img class="game-card-image" src="${escapeAttribute(game.coverImage)}" alt="${escapeAttribute(game.title)} cover" loading="lazy">`
-    : `<div class="game-card-media" style="background-image: ${fallbackArt(game)}"></div>`;
+    : `<div class="game-card-media" data-game-card-fallback="${escapeAttribute(game.id)}"></div>`;
   const favoriteLabel = game.favorite ? "Remove favorite" : "Add favorite";
   const sourceLabel = cleanText(game.launch && game.launch.source ? game.launch.source : "local").toUpperCase();
 
@@ -1354,6 +1376,7 @@ function bindGameCards() {
 function refreshGameMetadata(game) {
   document.querySelectorAll(`[data-card-game="${cssEscape(String(game.id))}"]`).forEach((card) => {
     const replacement = htmlToElement(renderGameCard(game));
+    applyGameCardFallbackArt(replacement);
     card.replaceWith(replacement);
   });
 
@@ -1364,6 +1387,9 @@ function refreshGameMetadata(game) {
 
   if (String(game.id) === String(state.openDetailsGameId)) {
     drawerContent.innerHTML = renderDrawer(game);
+    setElementBackgroundImage(drawerContent.querySelector("[data-game-drawer-cover]"), getHeroSlideImage(game), {
+      fallbackCss: fallbackArt(game),
+    });
   }
 
   bindGameCards();
@@ -1436,6 +1462,9 @@ function openGame(gameId) {
   state.openDetailsGameId = game.id;
   drawerTitle.textContent = "Game Details";
   drawerContent.innerHTML = renderDrawer(game);
+  setElementBackgroundImage(drawerContent.querySelector("[data-game-drawer-cover]"), getHeroSlideImage(game), {
+    fallbackCss: fallbackArt(game),
+  });
   detailDrawer.classList.add("open");
   detailDrawer.setAttribute("aria-hidden", "false");
   bindGameCards();
@@ -1608,7 +1637,7 @@ function renderDrawer(game) {
   ].filter((row) => row[1]);
 
   return `
-    <div class="drawer-cover" style="background-image: ${imageBackground(game, "hero")}"></div>
+    <div class="drawer-cover" data-game-drawer-cover></div>
     <h3 class="drawer-game-title">${escapeHtml(game.title)}</h3>
     <p class="drawer-description">${escapeHtml(game.description)}</p>
     <div class="drawer-actions">
