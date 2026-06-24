@@ -1922,7 +1922,7 @@ function closeAddGameMenu() {
 
 function openScanFolderModal() {
   closeAddGameMenu();
-  stopScaningFeedbackAnimation();
+  stopScanningFeedbackAnimation();
   state.scannedExecutables = [];
   state.selectedScannedPaths = new Set();
   state.scanFolderPath = "";
@@ -1942,7 +1942,7 @@ function closeScanFolderModalPanel() {
   if (state.isScanningFolder && state.activeScanId) {
     window.electronAPI.stopFolderScan(state.activeScanId);
   }
-  stopScaningFeedbackAnimation();
+  stopScanningFeedbackAnimation();
   state.scannedExecutables = [];
   state.selectedScannedPaths = new Set();
   state.scanFolderPath = "";
@@ -2242,13 +2242,13 @@ function setScanFolderFeedback(message, kind = "info") {
   scanFolderFeedback.classList.toggle("error", kind === "error");
 }
 
-function getScaningText(step = 0) {
-  const sequence = ["scaning", "scaning.", "scaning..", "scaning..."];
+function getScanningText(step = 0) {
+  const sequence = ["Scanning", "Scanning.", "Scanning..", "Scanning..."];
   return sequence[step % sequence.length];
 }
 
-function renderScaningFeedback() {
-  const base = getScaningText(state.scanFeedbackStep);
+function renderScanningFeedback() {
+  const base = getScanningText(state.scanFeedbackStep);
   const foundCount = state.scannedExecutables.length;
   const suffix = foundCount > 0
     ? ` ${foundCount} game${foundCount === 1 ? "" : "s"} found`
@@ -2257,24 +2257,24 @@ function renderScaningFeedback() {
   setScanFolderFeedback(`${base}${suffix}`);
 }
 
-function stopScaningFeedbackAnimation() {
+function stopScanningFeedbackAnimation() {
   if (!state.scanFeedbackTimer) return;
   window.clearInterval(state.scanFeedbackTimer);
   state.scanFeedbackTimer = null;
 }
 
-function startScaningFeedbackAnimation() {
-  stopScaningFeedbackAnimation();
+function startScanningFeedbackAnimation() {
+  stopScanningFeedbackAnimation();
   state.scanFeedbackStep = 0;
-  renderScaningFeedback();
+  renderScanningFeedback();
   state.scanFeedbackTimer = window.setInterval(() => {
     if (!state.isScanningFolder) {
-      stopScaningFeedbackAnimation();
+      stopScanningFeedbackAnimation();
       return;
     }
 
     state.scanFeedbackStep = (state.scanFeedbackStep + 1) % 4;
-    renderScaningFeedback();
+    renderScanningFeedback();
   }, 450);
 }
 
@@ -2347,14 +2347,14 @@ async function startScanFolder() {
   state.scannedExecutables = [];
   state.selectedScannedPaths = new Set();
   state.isScanningFolder = true;
-  startScaningFeedbackAnimation();
+  startScanningFeedbackAnimation();
   updateScanFolderAction();
 
   try {
     const result = await window.electronAPI.startFolderScan(state.scanFolderPath);
     state.activeScanId = result.scanId;
   } catch (error) {
-    stopScaningFeedbackAnimation();
+    stopScanningFeedbackAnimation();
     state.isScanningFolder = false;
     state.activeScanId = null;
     updateScanFolderAction();
@@ -2366,7 +2366,7 @@ async function startScanFolder() {
 async function stopScanFolder() {
   if (!state.isScanningFolder || !state.activeScanId) return;
   await window.electronAPI.stopFolderScan(state.activeScanId);
-  renderScaningFeedback();
+  renderScanningFeedback();
 }
 
 function handleScanFolderAction() {
@@ -2628,14 +2628,14 @@ function bindControls() {
     if (scanId !== state.activeScanId) return;
     appendScannedExecutable(item);
     if (state.isScanningFolder) {
-      renderScaningFeedback();
+      renderScanningFeedback();
     }
   });
 
   window.electronAPI.onFolderScanDone(({ scanId, canceled, error, count }) => {
     if (scanId !== state.activeScanId) return;
 
-    stopScaningFeedbackAnimation();
+    stopScanningFeedbackAnimation();
     state.isScanningFolder = false;
     state.activeScanId = null;
     updateScanFolderAction();
