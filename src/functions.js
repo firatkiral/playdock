@@ -303,12 +303,9 @@ function sanitizeGameName(user_input) {
         // Collapse multiple spaces into one and trim
         safe_input = safe_input.replace(/\s+/g, ' ').trim();
 
-        // Strip any HTML or markup and normalize unicode for consistent storage/search
-        try {
-            safe_input = sanitizer.sanitize(safe_input);
-        } catch (e) {
-            // sanitizer may not be available or may throw for some inputs; ignore safely
-        }
+        // Normalize unicode for consistent storage/search.
+        // Note: no external HTML sanitizer is used here.
+        // The character allowlist above already strips angle brackets and other markup symbols.
 
         try {
             safe_input = safe_input.normalize('NFC');

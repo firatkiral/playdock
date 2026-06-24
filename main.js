@@ -711,7 +711,11 @@ function applyAppSettings(settings = {}) {
         return;
     }
 
-    fs.removeSync(startupShortcutPath);
+    try {
+        fs.removeSync(startupShortcutPath);
+    } catch (error) {
+        console.warn(`Could not remove startup shortcut at ${startupShortcutPath}: ${error && error.message ? error.message : error}`);
+    }
 }
 
 app.whenReady().then(async val => {
