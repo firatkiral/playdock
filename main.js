@@ -652,13 +652,39 @@ function getStartupExecutablePath() {
     return process.env.PORTABLE_EXECUTABLE_FILE || process.execPath;
 }
 
+function isPathInsideAsar(filePath) {
+    const normalized = String(filePath || '').toLowerCase();
+    return normalized.includes(`${path.sep}app.asar${path.sep}`) || normalized.endsWith(`${path.sep}app.asar`);
+}
+
+function resolveShortcutIconPath(target) {
+    const candidates = [
+        path.join(process.resourcesPath || '', 'app.asar.unpacked', 'client', 'images', 'icon.ico'),
+        path.join(process.resourcesPath || '', 'icon.ico'),
+        APP_SHORTCUT_ICON_PATH,
+        target,
+    ];
+
+    for (const candidate of candidates) {
+        if (!candidate || isPathInsideAsar(candidate)) {
+            continue;
+        }
+
+        if (fs.existsSync(candidate)) {
+            return candidate;
+        }
+    }
+
+    return target;
+}
+
 function getShortcutLaunchOptions(description) {
     const target = getStartupExecutablePath();
     return {
         target,
         args: app.isPackaged ? '' : `"${app.getAppPath()}"`,
         cwd: app.isPackaged ? path.dirname(target) : app.getAppPath(),
-        icon: fs.existsSync(APP_SHORTCUT_ICON_PATH) ? APP_SHORTCUT_ICON_PATH : target,
+        icon: resolveShortcutIconPath(target),
         iconIndex: 0,
         description,
     };
