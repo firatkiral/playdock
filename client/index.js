@@ -149,6 +149,9 @@ const pinToStartButton = document.querySelector("#pinToStartButton");
 const createDesktopShortcutButton = document.querySelector("#createDesktopShortcutButton");
 const shortcutFeedback = document.querySelector("#shortcutFeedback");
 const hiddenGamesList = document.querySelector("#hiddenGamesList");
+const settingsAppVersionText = document.querySelector("#settingsAppVersionText");
+const settingsCopyrightText = document.querySelector("#settingsCopyrightText");
+const settingsLicenseText = document.querySelector("#settingsLicenseText");
 const metadataFeedback = document.querySelector("#metadataFeedback");
 const metadataSuggestions = document.querySelector("#metadataSuggestions");
 const gameCmdInput = document.querySelector("#gameCmdInput");
@@ -2020,6 +2023,12 @@ async function openSettingsModal() {
   const appDoc = await window.electronAPI.getApp();
   const settings = appDoc && appDoc.settings ? appDoc.settings : {};
   const igdbSettings = settings.igdb || {};
+  const appDisplayName = cleanText(appDoc && appDoc.displayName ? appDoc.displayName : "PlayDock") || "PlayDock";
+  const appVersion = cleanText(appDoc && appDoc.version ? appDoc.version : "");
+  const appLicense = cleanText(appDoc && appDoc.license ? appDoc.license : "MIT") || "MIT";
+  const appCopyright = cleanText(appDoc && appDoc.copyright
+    ? appDoc.copyright
+    : "Copyright (c) 2026 Firat Kiral") || "Copyright (c) 2026 Firat Kiral";
   const hiddenGames = await window.electronAPI.getHiddenGames();
   state.pendingUnhideGameIds = new Set();
   runOnStartupInput.checked = Boolean(settings.runOnStartup);
@@ -2032,6 +2041,15 @@ async function openSettingsModal() {
   }
   setAutoscanInputs(settings.autoscan);
   renderHiddenGames(hiddenGames);
+  if (settingsAppVersionText) {
+    settingsAppVersionText.textContent = appVersion ? `${appDisplayName} v${appVersion}` : appDisplayName;
+  }
+  if (settingsLicenseText) {
+    settingsLicenseText.textContent = appLicense;
+  }
+  if (settingsCopyrightText) {
+    settingsCopyrightText.textContent = appCopyright;
+  }
   setIgdbTestFeedback("");
   setShortcutFeedback("");
   settingsModalBackdrop.classList.remove("is-hidden");

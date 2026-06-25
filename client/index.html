@@ -1803,6 +1803,21 @@
       line-height: 1.35;
     }
 
+    .settings-row .settings-link {
+      color: var(--accent);
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .settings-row .settings-link:hover {
+      text-decoration: underline;
+    }
+
+    .settings-copy-value {
+      user-select: text;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    }
+
     .settings-toggle {
       width: 18px;
       height: 18px;
@@ -2597,6 +2612,55 @@
         <div class="settings-section">
           <h3 class="settings-section-title">Hidden Games</h3>
           <div id="hiddenGamesList" class="scan-results"></div>
+        </div>
+
+        <div class="settings-section">
+          <h3 class="settings-section-title">Info</h3>
+
+          <div class="settings-list">
+            <div class="settings-row">
+              <span>
+                <strong>App</strong>
+                <span id="settingsAppVersionText">PlayDock</span>
+              </span>
+            </div>
+
+            <div class="settings-row">
+              <span>
+                <strong>Website</strong>
+                <span><a class="settings-link" href="https://playdock.app" target="_blank" rel="noopener noreferrer">playdock.app</a></span>
+              </span>
+            </div>
+
+            <div class="settings-row">
+              <span>
+                <strong>Report an issue</strong>
+                <span><a class="settings-link" href="https://github.com/firatkiral/playdock/issues" target="_blank" rel="noopener noreferrer">GitHub Issues</a></span>
+              </span>
+            </div>
+
+            <div class="settings-row">
+              <span>
+                <strong>Support</strong>
+                <span class="settings-copy-value">support@playdock.app</span>
+              </span>
+            </div>
+
+            <div class="settings-row">
+              <span>
+                <strong>License</strong>
+                <span id="settingsLicenseText">MIT</span>
+              </span>
+            </div>
+
+            <div class="settings-row">
+              <span>
+                <strong>Copyright</strong>
+                <span id="settingsCopyrightText">Copyright (c) 2026 Firat Kiral</span>
+              </span>
+            </div>
+
+          </div>
         </div>
       </div>
 

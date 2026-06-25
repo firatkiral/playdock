@@ -5,6 +5,7 @@ const { fileURLToPath, pathToFileURL } = require('url');
 const http = require('http');
 const https = require('https');
 const crypto = require('crypto');
+const packageInfo = require('./package.json');
 const db = require('./src/db');
 const fs = require('fs-extra');
 
@@ -501,6 +502,17 @@ function getRssUrls() {
     return getOrCreateAppDoc().settings?.rssUrls || [];
 }
 
+function getAppResponseDoc() {
+    const appDoc = getOrCreateAppDoc();
+    return {
+        ...appDoc,
+        displayName: packageInfo?.build?.productName || appDoc.name || app.getName(),
+        version: app.getVersion(),
+        license: packageInfo?.license || "",
+        copyright: packageInfo?.build?.copyright || "",
+    };
+}
+
 function sameRssUrls(left = [], right = []) {
     if (left.length !== right.length) {
         return false;
@@ -782,8 +794,8 @@ app.whenReady().then(async val => {
 
     igdb.initIgdb();
 
-    ipcMain.handle('get-app', async (event) => {
-        return getOrCreateAppDoc();
+    ipcMain.handle('get-app', async () => {
+        return getAppResponseDoc();
     });
 
     ipcMain.handle('set-show-tips', async (event, showTips = true) => {
