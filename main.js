@@ -439,7 +439,7 @@ function createDefaultAppDoc() {
         const width = Number(size.width || 0);
         const height = Number(size.height || 0);
         // If the primary display is HD (1920x1080) or smaller, use a smaller UI scale by default
-        if (width > 0 && height > 0 && width <= 1920 && height <= 1080) {
+        if (width > 0 && height > 0 && (width <= 1920 || height <= 1080)) {
             defaultUiScale = 0.7;
         }
     } catch (err) {
