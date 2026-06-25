@@ -432,6 +432,20 @@ function normalizeFavoritesViewSettings(value = {}) {
 }
 
 function createDefaultAppDoc() {
+    let defaultUiScale = 1;
+    try {
+        const disp = screen.getPrimaryDisplay();
+        const size = (disp && (disp.size || disp.workAreaSize)) || {};
+        const width = Number(size.width || 0);
+        const height = Number(size.height || 0);
+        // If the primary display is HD (1920x1080) or smaller, use a smaller UI scale by default
+        if (width > 0 && height > 0 && width <= 1920 && height <= 1080) {
+            defaultUiScale = 0.7;
+        }
+    } catch (err) {
+        // ignore and fallback to 1
+    }
+
     return {
         name: "PlayDock",
         termsAccepted: false,
@@ -449,6 +463,7 @@ function createDefaultAppDoc() {
             libraryView: { ...DEFAULT_LIBRARY_VIEW_SETTINGS },
             favoritesView: { ...DEFAULT_FAVORITES_VIEW_SETTINGS },
             windowBounds: { ...DEFAULT_WINDOW_BOUNDS },
+            uiScale: defaultUiScale,
         },
     };
 }
@@ -469,6 +484,8 @@ function ensureAppDocSettings(appDoc) {
         ...DEFAULT_WINDOW_BOUNDS,
         ...(appDoc.settings.windowBounds || {}),
     };
+    const uiScaleCandidate = Number(appDoc.settings.uiScale);
+    appDoc.settings.uiScale = (Number.isFinite(uiScaleCandidate) && uiScaleCandidate > 0) ? uiScaleCandidate : 1;
     return appDoc;
 }
 
@@ -801,6 +818,10 @@ app.whenReady().then(async val => {
         appDoc.settings.igdb.clientId = String(settings.igdb?.clientId || '').trim();
         appDoc.settings.igdb.clientSecret = String(settings.igdb?.clientSecret || '').trim();
         appDoc.settings.rssUrls = nextRssUrls;
+        if (settings.uiScale !== undefined) {
+            const z = Number(settings.uiScale);
+            appDoc.settings.uiScale = (Number.isFinite(z) && z > 0) ? z : appDoc.settings.uiScale || 1;
+        }
         appDoc.settings.autoscan = settings.autoscan === undefined
             ? normalizeAutoscanSources(appDoc.settings.autoscan)
             : normalizeAutoscanSources(settings.autoscan);

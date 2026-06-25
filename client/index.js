@@ -140,6 +140,7 @@ const igdbTestFeedback = document.querySelector("#igdbTestFeedback");
 const rssSettingsUrlsInput = document.querySelector("#rssSettingsUrlsInput");
 const rssSettingsFeedback = document.querySelector("#rssSettingsFeedback");
 const showTipsInput = document.querySelector("#showTipsInput");
+const uiScaleSelect = document.querySelector("#uiScaleSelect");
 const autoscanSteamInput = document.querySelector("#autoscanSteamInput");
 const autoscanEpicInput = document.querySelector("#autoscanEpicInput");
 const autoscanUbisoftInput = document.querySelector("#autoscanUbisoftInput");
@@ -1273,6 +1274,7 @@ async function saveFavoritesViewSettings() {
       autoscan: settings.autoscan,
       libraryView: state.libraryView,
       favoritesView: state.favoritesView,
+      uiScale: settings.uiScale || 1,
       showTips: appDoc ? appDoc.showTips !== false : true,
     });
   } catch (error) {
@@ -1303,6 +1305,7 @@ async function saveLibraryViewSettings() {
       autoscan: settings.autoscan,
       libraryView: state.libraryView,
       favoritesView: state.favoritesView,
+      uiScale: settings.uiScale || 1,
       showTips: appDoc ? appDoc.showTips !== false : true,
     });
   } catch (error) {
@@ -2024,6 +2027,9 @@ async function openSettingsModal() {
   igdbClientIdInput.value = igdbSettings.clientId || "";
   igdbClientSecretInput.value = igdbSettings.clientSecret || "";
   showTipsInput.checked = appDoc ? appDoc.showTips !== false : true;
+  if (uiScaleSelect) {
+    uiScaleSelect.value = settings && settings.uiScale ? String(settings.uiScale) : "1";
+  }
   setAutoscanInputs(settings.autoscan);
   renderHiddenGames(hiddenGames);
   setIgdbTestFeedback("");
@@ -2157,8 +2163,17 @@ async function saveSettings() {
       autoscan: nextAutoscanSources,
       libraryView: nextLibraryViewSettings,
       favoritesView: nextFavoritesViewSettings,
+      uiScale: uiScaleSelect ? Number(uiScaleSelect.value) : (previousAppDoc && previousAppDoc.settings ? previousAppDoc.settings.uiScale : 1),
       showTips: showTipsInput.checked,
     });
+    // Apply zoom immediately after saving
+    try {
+      if (uiScaleSelect && window.electronAPI && typeof window.electronAPI.setZoomFactor === 'function') {
+        await window.electronAPI.setZoomFactor(Number(uiScaleSelect.value));
+      }
+    } catch (err) {
+      console.warn('Could not apply zoom factor:', err);
+    }
     applyEnabledAutoscanSources(nextAutoscanSources);
     state.libraryView = nextLibraryViewSettings;
     state.favoritesView = nextFavoritesViewSettings;
@@ -2221,6 +2236,7 @@ async function saveRssSettings() {
       autoscan: previousSettings.autoscan,
       libraryView: previousSettings.libraryView,
       favoritesView: previousSettings.favoritesView,
+      uiScale: previousSettings.uiScale || 1,
       showTips: previousAppDoc ? previousAppDoc.showTips !== false : true,
     });
 
@@ -3006,6 +3022,14 @@ async function init() {
     await ensureTermsAccepted();
     await ensureIgdbSettingsReady();
     const appDoc = await window.electronAPI.getApp();
+    try {
+      const scale = appDoc && appDoc.settings && appDoc.settings.uiScale ? Number(appDoc.settings.uiScale) : 1;
+      if (window.electronAPI && typeof window.electronAPI.setZoomFactor === 'function') {
+        await window.electronAPI.setZoomFactor(scale);
+      }
+    } catch (err) {
+      console.warn('Could not apply saved UI scale:', err);
+    }
     applyEnabledAutoscanSources(appDoc && appDoc.settings ? appDoc.settings.autoscan : undefined);
     applyLibraryViewSettings(appDoc && appDoc.settings ? appDoc.settings.libraryView : {});
     applyFavoritesViewSettings(appDoc && appDoc.settings ? appDoc.settings.favoritesView : {});

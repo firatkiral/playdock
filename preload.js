@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer, webUtils } = require('electron')
+const { contextBridge, ipcRenderer, webUtils, webFrame } = require('electron')
 
 contextBridge.exposeInMainWorld('electronAPI', {
   getApp: () => ipcRenderer.invoke('get-app'),
@@ -43,4 +43,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   minimizeWindow: () => ipcRenderer.invoke('window-minimize'),
   toggleMaximizeWindow: () => ipcRenderer.invoke('window-toggle-maximize'),
   getPathForFile: (file) => webUtils.getPathForFile(file),
+  setZoomFactor: (factor) => {
+    try {
+      webFrame.setZoomFactor(Number(factor) || 1);
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err && err.message ? err.message : String(err) };
+    }
+  },
 })

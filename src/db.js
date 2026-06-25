@@ -110,6 +110,7 @@ const appShema = {
                 },
                 default: {},
             },
+            uiScale: { type: "Number", default: 1 },
         },
         required: true,
         default: {},
