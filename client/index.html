@@ -1170,6 +1170,7 @@
       top: 0;
       bottom: 0;
       width: min(460px, calc(100vw - var(--sidebar)));
+      max-width: 100vw;
       padding: 24px;
       background: rgba(12, 15, 22, 0.97);
       border-left: 1px solid var(--line);
@@ -1178,6 +1179,7 @@
       transition: transform 190ms ease;
       z-index: calc(var(--z-drawer) + 1);
       overflow: auto;
+      overflow-x: hidden;
       backdrop-filter: blur(20px);
     }
 
@@ -1336,6 +1338,7 @@
     .add-game-form {
       display: grid;
       gap: 16px;
+      min-width: 0;
     }
 
     .form-section {
@@ -1343,6 +1346,7 @@
       gap: 12px;
       border-top: 1px solid var(--line);
       padding-top: 16px;
+      min-width: 0;
     }
 
     .form-section:first-of-type {
@@ -1354,7 +1358,26 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      flex-wrap: wrap;
       gap: 12px;
+      min-width: 0;
+    }
+
+    .form-section-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      gap: 8px;
+      min-width: 0;
+      margin-left: auto;
+    }
+
+    .metadata-field-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      min-width: 0;
     }
 
     .form-section-title {
@@ -1414,6 +1437,20 @@
       font-weight: 750;
       text-transform: uppercase;
       letter-spacing: 0.08em;
+    }
+
+    .field-action-button {
+      min-height: 30px;
+      padding: 0 10px;
+      font-size: 11px;
+      font-weight: 750;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .clear-action-icon {
+      color: var(--danger);
+      flex: 0 0 auto;
     }
 
     .form-input {
@@ -1502,6 +1539,12 @@
     .media-preview {
       display: grid;
       gap: 10px;
+      min-width: 0;
+    }
+
+    .media-preview-card {
+      position: relative;
+      min-width: 0;
     }
 
     .cover-preview {
@@ -1518,10 +1561,23 @@
       grid-auto-flow: column;
       grid-auto-columns: 96px;
       gap: 8px;
+      max-width: 100%;
       overflow-x: auto;
       padding-bottom: 4px;
       scrollbar-width: thin;
       scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+    }
+
+    .media-clear-button {
+      position: absolute;
+      right: 10px;
+      bottom: 10px;
+      z-index: 1;
+      width: 34px;
+      height: 34px;
+      min-height: 34px;
+      padding: 0;
+      backdrop-filter: blur(8px);
     }
 
     .screenshot-preview {
@@ -2301,12 +2357,20 @@
       <section class="form-section">
         <div class="form-section-header">
           <h3 class="form-section-title">Metadata</h3>
-          <button id="openMetadataModal" class="ghost-button" type="button">Pull Metadata</button>
         </div>
 
         <div class="form-field">
           <label for="gameNameInput">Name</label>
           <input id="gameNameInput" class="form-input" type="text" autocomplete="off">
+          <div class="metadata-field-actions">
+            <button id="openMetadataModal" class="ghost-button field-action-button" type="button">Pull Metadata</button>
+            <button id="clearMetadataButton" class="ghost-button field-action-button is-hidden" type="button" title="Clear metadata" aria-label="Clear metadata">
+              <svg class="clear-action-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+                <path d="M18 6 6 18" />
+                <path d="m6 6 12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         <div class="form-field">
@@ -2324,8 +2388,24 @@
         <h3 class="form-section-title">Media</h3>
 
         <div class="media-preview">
-          <img id="coverPreview" class="cover-preview is-hidden" alt="">
-          <div id="screenshotPreviewStrip" class="screenshot-preview-strip"></div>
+          <div id="coverPreviewCard" class="media-preview-card is-hidden">
+            <img id="coverPreview" class="cover-preview" alt="">
+            <button id="clearCoverButton" class="ghost-button media-clear-button" type="button" title="Clear cover" aria-label="Clear cover image">
+              <svg class="clear-action-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+                <path d="M18 6 6 18" />
+                <path d="m6 6 12 12" />
+              </svg>
+            </button>
+          </div>
+          <div id="screenshotPreviewCard" class="media-preview-card is-hidden">
+            <div id="screenshotPreviewStrip" class="screenshot-preview-strip"></div>
+            <button id="clearScreenshotsButton" class="ghost-button media-clear-button" type="button" title="Clear screenshots" aria-label="Clear screenshots">
+              <svg class="clear-action-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+                <path d="M18 6 6 18" />
+                <path d="m6 6 12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         <div class="form-field">

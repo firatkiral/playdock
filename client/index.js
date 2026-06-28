@@ -94,6 +94,11 @@ const gameDescriptionInput = document.querySelector("#gameDescriptionInput");
 const gameGenresInput = document.querySelector("#gameGenresInput");
 const gameCoverImageInput = document.querySelector("#gameCoverImageInput");
 const gameScreenshotsInput = document.querySelector("#gameScreenshotsInput");
+const coverPreviewCard = document.querySelector("#coverPreviewCard");
+const screenshotPreviewCard = document.querySelector("#screenshotPreviewCard");
+const clearCoverButton = document.querySelector("#clearCoverButton");
+const clearScreenshotsButton = document.querySelector("#clearScreenshotsButton");
+const clearMetadataButton = document.querySelector("#clearMetadataButton");
 const coverFileName = document.querySelector("#coverFileName");
 const screenshotsFileName = document.querySelector("#screenshotsFileName");
 const coverPreview = document.querySelector("#coverPreview");
@@ -1562,6 +1567,89 @@ function getEditorMetadata() {
   return metadata;
 }
 
+function hasStoredMetadataValue(metadata) {
+  if (!metadata) return false;
+
+  return Boolean(
+    metadata.igdbId ||
+    metadata.igdbUrl ||
+    metadata.description ||
+    metadata.coverImage ||
+    metadata.icon ||
+    metadata.releaseDate ||
+    metadata.ageRatings ||
+    metadata.criticScore ||
+    metadata.communityScore ||
+    (Array.isArray(metadata.genres) && metadata.genres.length) ||
+    (Array.isArray(metadata.publishers) && metadata.publishers.length) ||
+    (Array.isArray(metadata.developers) && metadata.developers.length) ||
+    (Array.isArray(metadata.modes) && metadata.modes.length) ||
+    (Array.isArray(metadata.tags) && metadata.tags.length) ||
+    (Array.isArray(metadata.screenshots) && metadata.screenshots.length) ||
+    (Array.isArray(metadata.videos) && metadata.videos.length) ||
+    (Array.isArray(metadata.links) && metadata.links.length)
+  );
+}
+
+function hasEditorMetadataContent() {
+  return Boolean(
+    gameDescriptionInput.value.trim() ||
+    parseListInput(gameGenresInput.value).length ||
+    state.selectedCoverFilePath ||
+    state.selectedScreenshotFilePaths.length ||
+    hasStoredMetadataValue(state.selectedMetadata)
+  );
+}
+
+function clearCoverImage() {
+  state.selectedCoverFilePath = "";
+  gameCoverImageInput.value = "";
+  if (state.selectedMetadata) {
+    state.selectedMetadata = {
+      ...state.selectedMetadata,
+      coverImage: ""
+    };
+  }
+  updateMediaPreview();
+}
+
+function clearScreenshots() {
+  state.selectedScreenshotFilePaths = [];
+  gameScreenshotsInput.value = "";
+  if (state.selectedMetadata) {
+    state.selectedMetadata = {
+      ...state.selectedMetadata,
+      screenshots: []
+    };
+  }
+  updateMediaPreview();
+}
+
+function clearEditorMetadata() {
+  state.selectedMetadata = null;
+  state.selectedCoverFilePath = "";
+  state.selectedScreenshotFilePaths = [];
+  gameDescriptionInput.value = "";
+  gameGenresInput.value = "";
+  gameCoverImageInput.value = "";
+  gameScreenshotsInput.value = "";
+  addGameError.textContent = "";
+  updateMediaPreview();
+}
+
+function updateEditorMetadataActions() {
+  const coverImage = state.selectedCoverFilePath || (state.selectedMetadata && state.selectedMetadata.coverImage) || "";
+  const screenshots = state.selectedScreenshotFilePaths.length
+    ? state.selectedScreenshotFilePaths
+    : state.selectedMetadata && Array.isArray(state.selectedMetadata.screenshots) ? state.selectedMetadata.screenshots : [];
+
+  coverPreviewCard.classList.toggle("is-hidden", !coverImage);
+  clearCoverButton.classList.toggle("is-hidden", !coverImage);
+  screenshotPreviewCard.classList.toggle("is-hidden", !screenshots.length);
+  clearScreenshotsButton.classList.toggle("is-hidden", !screenshots.length);
+  clearMetadataButton.classList.toggle("is-hidden", !hasEditorMetadataContent());
+}
+
 function updateMediaPreview() {
   const coverImage = state.selectedCoverFilePath || (state.selectedMetadata && state.selectedMetadata.coverImage) || "";
   const screenshots = (
@@ -1570,7 +1658,6 @@ function updateMediaPreview() {
       : state.selectedMetadata && Array.isArray(state.selectedMetadata.screenshots) ? state.selectedMetadata.screenshots : []
   ).slice(0, 8);
 
-  coverPreview.classList.toggle("is-hidden", !coverImage);
   if (coverImage) {
     coverPreview.src = imageSourceForPath(coverImage);
   } else {
@@ -1587,6 +1674,7 @@ function updateMediaPreview() {
   screenshotsFileName.textContent = state.selectedScreenshotFilePaths.length
     ? `${state.selectedScreenshotFilePaths.length} image${state.selectedScreenshotFilePaths.length === 1 ? "" : "s"} selected`
     : screenshots.length ? "Metadata images" : "No images selected";
+  updateEditorMetadataActions();
 }
 
 function imageSourceForPath(value) {
@@ -2780,6 +2868,9 @@ function bindControls() {
   });
   cancelAddGame.addEventListener("click", closeAddGamePanel);
   openMetadataModal.addEventListener("click", openMetadataSearchModal);
+  clearCoverButton.addEventListener("click", clearCoverImage);
+  clearScreenshotsButton.addEventListener("click", clearScreenshots);
+  clearMetadataButton.addEventListener("click", clearEditorMetadata);
   closeMetadataModal.addEventListener("click", closeMetadataSearchModal);
   cancelMetadataModal.addEventListener("click", closeMetadataSearchModal);
   metadataModalBackdrop.addEventListener("click", (event) => {
@@ -2866,12 +2957,14 @@ function bindControls() {
     if (state.selectedMetadata) {
       state.selectedMetadata = { ...state.selectedMetadata, description: gameDescriptionInput.value.trim() };
     }
+    updateEditorMetadataActions();
   });
 
   gameGenresInput.addEventListener("input", () => {
     if (state.selectedMetadata) {
       state.selectedMetadata = { ...state.selectedMetadata, genres: parseListInput(gameGenresInput.value) };
     }
+    updateEditorMetadataActions();
   });
 
   gameCoverImageInput.addEventListener("change", () => {
