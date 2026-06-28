@@ -2857,11 +2857,8 @@ function bindControls() {
 
   gameNameInput.addEventListener("input", () => {
     addGameError.textContent = "";
-    if (
-      state.selectedMetadata &&
-      cleanText(state.selectedMetadata.name).toLowerCase() !== cleanText(gameNameInput.value).toLowerCase()
-    ) {
-      state.selectedMetadata = null;
+    if (state.selectedMetadata) {
+      state.selectedMetadata = { ...state.selectedMetadata, name: gameNameInput.value.trim() };
     }
   });
 
