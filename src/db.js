@@ -93,7 +93,7 @@ const appShema = {
                 },
                 default: {},
             },
-            autoscan: { type: ["String"], default: ["steam", "epic", "ubisoft", "gog"] },
+            autoscan: { type: ["String"], default: ["steam", "epic", "ubisoft", "gog", "xbox", "ea"] },
             libraryView: {
                 type: "Object",
                 schema: {

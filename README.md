@@ -81,7 +81,7 @@ Search helps filter the library by:
 
 - Game name
 - Genre
-- Source, such as `steam`, `epic`, `gog`, `ubisoft`, or `local`
+- Source, such as `steam`, `epic`, `gog`, `ubisoft`, `xbox`, `ea`, or `local`
 - Developer, publisher, and tags when metadata is available
 
 The library is organized into sections:
@@ -96,6 +96,8 @@ Supported launchers and sources:
 - Epic Games
 - Ubisoft Connect
 - GOG
+- Xbox
+- EA app
 - Local games and shortcuts
 
 ## Adding a Game
@@ -174,7 +176,7 @@ PlayDock includes these app options:
 
 ### Hidden Games
 
-Games scanned from external sources such as Steam, Epic Games, Ubisoft Connect, and GOG cannot be deleted from inside PlayDock because those entries come from installed launcher data.
+Games scanned from external sources such as Steam, Epic Games, Ubisoft Connect, GOG, Xbox, and EA app cannot be deleted from inside PlayDock because those entries come from installed launcher data.
 
 Instead, PlayDock lets you hide them from the library. Hidden launcher games can be restored later from Settings.
 

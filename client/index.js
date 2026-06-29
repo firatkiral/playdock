@@ -51,7 +51,7 @@ const state = {
   favoritesView: {
     sort: "favoritedAt",
   },
-  enabledAutoscanSources: ["steam", "epic", "ubisoft", "gog", "xbox"],
+  enabledAutoscanSources: ["steam", "epic", "ubisoft", "gog", "xbox", "ea"],
   libraryViewSaveTimer: null,
   favoritesViewSaveTimer: null,
 };
@@ -154,6 +154,7 @@ const autoscanEpicInput = document.querySelector("#autoscanEpicInput");
 const autoscanUbisoftInput = document.querySelector("#autoscanUbisoftInput");
 const autoscanGogInput = document.querySelector("#autoscanGogInput");
 const autoscanXboxInput = document.querySelector("#autoscanXboxInput");
+const autoscanEaInput = document.querySelector("#autoscanEaInput");
 const pinToStartButton = document.querySelector("#pinToStartButton");
 const createDesktopShortcutButton = document.querySelector("#createDesktopShortcutButton");
 const shortcutFeedback = document.querySelector("#shortcutFeedback");
@@ -179,6 +180,7 @@ const autoscanSourceOptions = [
   { source: "ubisoft", label: "Ubisoft Connect", input: autoscanUbisoftInput },
   { source: "gog", label: "GOG", input: autoscanGogInput },
   { source: "xbox", label: "Xbox", input: autoscanXboxInput },
+  { source: "ea", label: "EA app", input: autoscanEaInput },
 ];
 const librarySourceOptions = [
   { source: "all", label: "All Sources" },
