@@ -1931,13 +1931,10 @@ function setGameDropFeedback(message, kind = "info") {
   gameDropFeedback.classList.toggle("error", kind === "error");
 }
 
-function setGameDropBusy(isBusy, message) {
+function setGameDropBusy(isBusy) {
   state.isInspectingGameFile = isBusy;
   setAddGameSaving(state.isSavingGame);
   gameDropZone.classList.remove("drag-over");
-  if (message !== undefined) {
-    setGameDropFeedback(message);
-  }
 }
 
 function resetAddGameForm() {
@@ -1946,7 +1943,8 @@ function resetAddGameForm() {
   setAddGameMode("create");
   gameSourcePath.value = "";
   addGameError.textContent = "";
-  setGameDropBusy(false, "");
+  setGameDropBusy(false);
+  setGameDropFeedback("");
   clearMetadataSearchTimer();
   state.metadataSearchToken += 1;
   state.selectedMetadata = null;
@@ -1967,7 +1965,7 @@ function fillAddGameForm(draft) {
 async function inspectAndFillGame(filePath) {
   if (!filePath || state.isInspectingGameFile || state.isSavingGame) return;
   addGameError.textContent = "";
-  setGameDropBusy(true, "Reading file...");
+  setGameDropBusy(true);
 
   try {
     const draft = await window.electronAPI.inspectGamePath(filePath);
@@ -3029,7 +3027,7 @@ function bindControls() {
   browseGameFile.addEventListener("click", async () => {
     if (state.isInspectingGameFile || state.isSavingGame) return;
     addGameError.textContent = "";
-    setGameDropBusy(true, "Reading file...");
+    setGameDropBusy(true);
 
     try {
       const draft = await window.electronAPI.browseGameFile();
