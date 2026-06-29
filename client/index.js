@@ -24,6 +24,7 @@ const state = {
   scanFolderPath: "",
   activeScanId: null,
   isScanningFolder: false,
+  isAddingScannedGames: false,
   scanFeedbackTimer: null,
   scanFeedbackStep: 0,
   editorMode: "create",
@@ -110,6 +111,7 @@ const cancelMetadataModal = document.querySelector("#cancelMetadataModal");
 const metadataSearchInput = document.querySelector("#metadataSearchInput");
 const loadMetadataButton = document.querySelector("#loadMetadataButton");
 const scanFolderModalBackdrop = document.querySelector("#scanFolderModalBackdrop");
+const scanFolderModalPanel = document.querySelector("#scanFolderModalPanel");
 const selectScanFolderButton = document.querySelector("#selectScanFolderButton");
 const closeScanFolderModal = document.querySelector("#closeScanFolderModal");
 const cancelScanFolderModal = document.querySelector("#cancelScanFolderModal");
@@ -2016,40 +2018,21 @@ function closeAddGameMenu() {
 
 function openScanFolderModal() {
   closeAddGameMenu();
-  stopScanningFeedbackAnimation();
-  state.scannedExecutables = [];
-  state.selectedScannedPaths = new Set();
-  state.scanFolderPath = "";
-  state.activeScanId = null;
-  state.isScanningFolder = false;
-  scanFolderInput.textContent = "No folder selected";
-  scanFolderFeedback.textContent = "";
-  scanFolderFeedback.classList.remove("error");
-  scanFolderResults.innerHTML = "";
-  addScannedGamesButton.disabled = true;
-  updateScanFolderAction();
+  resetScanFolderModalState();
+  syncScanFolderUi();
   scanFolderModalBackdrop.classList.remove("is-hidden");
   scanFolderModalBackdrop.setAttribute("aria-hidden", "false");
 }
 
 function closeScanFolderModalPanel() {
+  if (state.isAddingScannedGames) return;
   if (state.isScanningFolder && state.activeScanId) {
     window.electronAPI.stopFolderScan(state.activeScanId);
   }
-  stopScanningFeedbackAnimation();
-  state.scannedExecutables = [];
-  state.selectedScannedPaths = new Set();
-  state.scanFolderPath = "";
-  state.activeScanId = null;
-  state.isScanningFolder = false;
   scanFolderModalBackdrop.classList.add("is-hidden");
   scanFolderModalBackdrop.setAttribute("aria-hidden", "true");
-  scanFolderInput.textContent = "No folder selected";
-  scanFolderFeedback.textContent = "";
-  scanFolderFeedback.classList.remove("error");
-  scanFolderResults.innerHTML = "";
-  addScannedGamesButton.disabled = true;
-  updateScanFolderAction();
+  resetScanFolderModalState();
+  syncScanFolderUi();
 }
 
 function getIgdbSetupMessage(reason = "missing_credentials") {
@@ -2369,14 +2352,54 @@ function getScanningText(step = 0) {
   return sequence[step % sequence.length];
 }
 
+function renderAddScannedGamesButton() {
+  if (state.isAddingScannedGames) {
+    addScannedGamesButton.innerHTML = '<span class="button-label"><span class="button-spinner" aria-hidden="true"></span><span>Adding...</span></span>';
+  } else {
+    addScannedGamesButton.textContent = "Add";
+  }
+  addScannedGamesButton.setAttribute("aria-busy", String(state.isAddingScannedGames));
+}
+
+function resetScanFolderModalState() {
+  stopScanningFeedbackAnimation();
+  state.scannedExecutables = [];
+  state.selectedScannedPaths = new Set();
+  state.scanFolderPath = "";
+  state.activeScanId = null;
+  state.isScanningFolder = false;
+  state.isAddingScannedGames = false;
+  scanFolderInput.textContent = "No folder selected";
+  scanFolderFeedback.textContent = "";
+  scanFolderFeedback.classList.remove("error");
+  scanFolderResults.innerHTML = "";
+}
+
+function updateScanFolderModalState() {
+  const isBusy = state.isAddingScannedGames;
+  scanFolderModalPanel.classList.toggle("is-busy", isBusy);
+  scanFolderModalPanel.setAttribute("aria-busy", String(isBusy));
+  selectScanFolderButton.disabled = isBusy;
+  closeScanFolderModal.disabled = isBusy;
+  cancelScanFolderModal.disabled = isBusy;
+  addScannedGamesButton.disabled = isBusy || state.selectedScannedPaths.size === 0 || state.isScanningFolder;
+  renderAddScannedGamesButton();
+}
+
+function syncScanFolderUi() {
+  renderScannedExecutables();
+  updateScanFolderAction();
+  updateScanFolderModalState();
+}
+
 function renderScanningFeedback() {
   const base = getScanningText(state.scanFeedbackStep);
   const foundCount = state.scannedExecutables.length;
-  const suffix = foundCount > 0
-    ? ` ${foundCount} game${foundCount === 1 ? "" : "s"} found`
+  const prefix = foundCount > 0
+    ? `${foundCount} game${foundCount === 1 ? "" : "s"} found. `
     : "";
 
-  setScanFolderFeedback(`${base}${suffix}`);
+  setScanFolderFeedback(`${prefix}${base}`);
 }
 
 function stopScanningFeedbackAnimation() {
@@ -2403,9 +2426,10 @@ function startScanningFeedbackAnimation() {
 function renderScannedExecutables() {
   scanFolderResults.innerHTML = state.scannedExecutables.map((item) => {
     const checked = state.selectedScannedPaths.has(item.path);
+    const disabled = state.isScanningFolder || state.isAddingScannedGames;
     return `
-      <label class="scan-option">
-        <input type="checkbox" data-scan-path="${escapeAttribute(item.path)}"${checked ? " checked" : ""}>
+      <label class="scan-option${disabled ? " is-disabled" : ""}">
+        <input type="checkbox" data-scan-path="${escapeAttribute(item.path)}"${checked ? " checked" : ""}${disabled ? " disabled" : ""}>
         ${item.icon ? `<img class="scan-option-icon" src="${escapeAttribute(item.icon)}" alt="">` : `<span class="scan-option-icon"></span>`}
         <span>
           <span class="scan-option-title">${escapeHtml(item.name)}</span>
@@ -2416,12 +2440,17 @@ function renderScannedExecutables() {
 
   scanFolderResults.querySelectorAll("[data-scan-path]").forEach((checkbox) => {
     checkbox.addEventListener("change", () => {
+      if (state.isScanningFolder || state.isAddingScannedGames) {
+        checkbox.checked = state.selectedScannedPaths.has(checkbox.dataset.scanPath);
+        return;
+      }
+
       if (checkbox.checked) {
         state.selectedScannedPaths.add(checkbox.dataset.scanPath);
       } else {
         state.selectedScannedPaths.delete(checkbox.dataset.scanPath);
       }
-      addScannedGamesButton.disabled = state.selectedScannedPaths.size === 0 || state.isScanningFolder;
+      updateScanFolderModalState();
       setScanFolderFeedback(`${state.selectedScannedPaths.size} selected`);
     });
   });
@@ -2433,16 +2462,16 @@ function appendScannedExecutable(item) {
 
   state.scannedExecutables.push(item);
   state.scannedExecutables.sort((a, b) => a.name.localeCompare(b.name));
-  renderScannedExecutables();
+  syncScanFolderUi();
 }
 
 function updateScanFolderAction() {
   scanFolderActionButton.textContent = state.isScanningFolder ? "Stop" : "Scan";
-  scanFolderActionButton.disabled = !state.isScanningFolder && !state.scanFolderPath;
+  scanFolderActionButton.disabled = state.isAddingScannedGames || (!state.isScanningFolder && !state.scanFolderPath);
 }
 
 async function selectScanFolder() {
-  if (state.isScanningFolder) return;
+  if (state.isScanningFolder || state.isAddingScannedGames) return;
 
   try {
     const folderPath = await window.electronAPI.selectScanFolder();
@@ -2452,25 +2481,21 @@ async function selectScanFolder() {
     state.scannedExecutables = [];
     state.selectedScannedPaths = new Set();
     scanFolderInput.textContent = folderPath;
-    scanFolderResults.innerHTML = "";
-    addScannedGamesButton.disabled = true;
     setScanFolderFeedback("");
-    updateScanFolderAction();
+    syncScanFolderUi();
   } catch (error) {
     setScanFolderFeedback("Could not select that folder.", "error");
   }
 }
 
 async function startScanFolder() {
-  if (!state.scanFolderPath || state.isScanningFolder) return;
+  if (!state.scanFolderPath || state.isScanningFolder || state.isAddingScannedGames) return;
 
-  addScannedGamesButton.disabled = true;
-  scanFolderResults.innerHTML = "";
   state.scannedExecutables = [];
   state.selectedScannedPaths = new Set();
   state.isScanningFolder = true;
   startScanningFeedbackAnimation();
-  updateScanFolderAction();
+  syncScanFolderUi();
 
   try {
     const result = await window.electronAPI.startFolderScan(state.scanFolderPath);
@@ -2479,8 +2504,7 @@ async function startScanFolder() {
     stopScanningFeedbackAnimation();
     state.isScanningFolder = false;
     state.activeScanId = null;
-    updateScanFolderAction();
-    addScannedGamesButton.disabled = state.selectedScannedPaths.size === 0;
+    syncScanFolderUi();
     setScanFolderFeedback("Could not scan that folder.", "error");
   }
 }
@@ -2500,49 +2524,47 @@ function handleScanFolderAction() {
 }
 
 async function addSelectedScannedGames() {
+  if (state.isAddingScannedGames) return;
   const selectedItems = state.scannedExecutables.filter((item) => state.selectedScannedPaths.has(item.path));
   if (!selectedItems.length) return;
 
-  addScannedGamesButton.disabled = true;
+  state.isAddingScannedGames = true;
+  syncScanFolderUi();
   setScanFolderFeedback(`Adding ${selectedItems.length} game${selectedItems.length === 1 ? "" : "s"}...`);
 
   const addedGames = [];
-  for (const item of selectedItems) {
-    try {
-      const draft = await window.electronAPI.inspectGamePath(item.path);
-      const game = await window.electronAPI.addLocalGame({
-        name: draft.name || item.name,
-        favorite: false,
-        metadata: null,
-        launch: draft.launch || {
-          appId: "",
-          source: "local",
-          installDir: item.installDir || "",
-          cmd: item.path,
-          exe: item.exe || "",
-          args: "",
-        },
-      });
-      addedGames.push(game);
-    } catch (error) {
-      console.error("Could not add scanned game.", error);
+  try {
+    for (const item of selectedItems) {
+      try {
+        const draft = await window.electronAPI.inspectGamePath(item.path);
+        const game = await window.electronAPI.addLocalGame({
+          name: draft.name || item.name,
+          favorite: false,
+          metadata: null,
+          launch: draft.launch || {
+            appId: "",
+            source: "local",
+            installDir: item.installDir || "",
+            cmd: item.path,
+            exe: item.exe || "",
+            args: "",
+          },
+        });
+        addedGames.push(game);
+      } catch (error) {
+        console.error("Could not add scanned game.", error);
+      }
     }
+
+    mergeGamesIntoState(addedGames);
+    if (addedGames.length) {
+      state.selectedGameId = addedGames[0].id;
+    }
+  } finally {
+    state.isAddingScannedGames = false;
+    syncScanFolderUi();
   }
 
-  for (const game of addedGames) {
-    const normalizedGame = normalizeGame(game, state.games.length);
-    const existingIndex = state.games.findIndex((candidate) => String(candidate.id) === String(game.id));
-    if (existingIndex >= 0) {
-      state.games[existingIndex] = normalizedGame;
-    } else {
-      state.games.push(normalizedGame);
-    }
-  }
-
-  state.games.sort((a, b) => a.title.localeCompare(b.title));
-  if (addedGames.length) {
-    state.selectedGameId = addedGames[0].id;
-  }
   closeScanFolderModalPanel();
   render();
   addedGames.forEach((game) => ensureGameMetadata(game.id));
@@ -2554,6 +2576,20 @@ function formatMetadataSearchError(error) {
   if (message.includes("missing-game-name")) return "Enter a game name to load metadata suggestions.";
   if (message.includes("Client ID or Client Secret not set")) return "Could not pull metadata. Configure IGDB client credentials in Settings.";
   return `Could not pull metadata: ${message}`;
+}
+
+function mergeGamesIntoState(games) {
+  for (const game of games) {
+    const normalizedGame = normalizeGame(game, state.games.length);
+    const existingIndex = state.games.findIndex((candidate) => String(candidate.id) === String(game.id));
+    if (existingIndex >= 0) {
+      state.games[existingIndex] = normalizedGame;
+    } else {
+      state.games.push(normalizedGame);
+    }
+  }
+
+  state.games.sort((a, b) => a.title.localeCompare(b.title));
 }
 
 async function searchMetadataSuggestions(query, { preserveSelection = false } = {}) {
@@ -2760,8 +2796,7 @@ function bindControls() {
     stopScanningFeedbackAnimation();
     state.isScanningFolder = false;
     state.activeScanId = null;
-    updateScanFolderAction();
-    addScannedGamesButton.disabled = state.selectedScannedPaths.size === 0;
+    syncScanFolderUi();
 
     if (error) {
       setScanFolderFeedback("Could not scan that folder.", "error");
@@ -3042,15 +3077,8 @@ function bindControls() {
       const game = state.editorMode === "edit"
         ? await window.electronAPI.updateGame(payload)
         : await window.electronAPI.addLocalGame(payload);
-      const normalizedGame = normalizeGame(game, state.games.length);
-      const existingIndex = state.games.findIndex((candidate) => String(candidate.id) === String(game.id));
-      if (existingIndex >= 0) {
-        state.games[existingIndex] = normalizedGame;
-      } else {
-        state.games.push(normalizedGame);
-      }
-      state.games.sort((a, b) => a.title.localeCompare(b.title));
-      state.selectedGameId = normalizedGame.id;
+      mergeGamesIntoState([game]);
+      state.selectedGameId = game.id;
       closeAddGamePanel();
       render();
     } catch (error) {

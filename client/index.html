@@ -470,7 +470,7 @@
     .danger-button:disabled,
     .icon-button:disabled {
       opacity: 0.58;
-      cursor: not-allowed;
+      cursor: default;
       transform: none;
     }
 
@@ -1915,6 +1915,15 @@
       background: rgba(0, 209, 167, 0.08);
     }
 
+    .scan-option.is-disabled {
+      opacity: 0.62;
+    }
+
+    .scan-option.is-disabled:hover {
+      border-color: var(--line);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
     .scan-option input {
       margin-top: 8px;
     }
@@ -1944,6 +1953,22 @@
       line-height: 1.35;
       text-overflow: ellipsis;
       white-space: nowrap;
+    }
+
+    .button-spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.28);
+      border-top-color: currentColor;
+      border-radius: 999px;
+      animation: spin 800ms linear infinite;
+      flex: 0 0 auto;
+    }
+
+    .button-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
     }
 
     .metadata-option {
@@ -1994,7 +2019,7 @@
     .primary-button:disabled,
     .ghost-button:disabled,
     .quick-play:disabled {
-      cursor: not-allowed;
+      cursor: default;
       opacity: 0.45;
       transform: none;
     }
@@ -2491,7 +2516,7 @@
   </div>
 
   <div id="scanFolderModalBackdrop" class="metadata-modal-backdrop is-hidden" aria-hidden="true">
-    <section class="metadata-modal" role="dialog" aria-modal="true" aria-labelledby="scanFolderModalTitle">
+    <section id="scanFolderModalPanel" class="metadata-modal" role="dialog" aria-modal="true" aria-labelledby="scanFolderModalTitle">
       <div class="drawer-top">
         <h2 id="scanFolderModalTitle" class="drawer-title">Scan Folder</h2>
         <button id="closeScanFolderModal" class="icon-button" type="button" title="Close" aria-label="Close scan folder">
