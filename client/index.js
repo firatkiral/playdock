@@ -293,9 +293,47 @@ function gameAccent(game) {
   return pickByName(game.title || game.name, colors);
 }
 
+function fallbackTitleWidthUnits(value) {
+  return [...value].reduce((total, char) => {
+    if (char === " ") return total + 0.32;
+    if (".,:;!|'`".includes(char)) return total + 0.24;
+    if ("-_/\\()[]{}".includes(char)) return total + 0.36;
+    if ("MW@#%&".includes(char)) return total + 0.92;
+    if (/[A-Z]/.test(char)) return total + 0.68;
+    if (/[0-9]/.test(char)) return total + 0.56;
+    if (/[a-z]/.test(char)) return total + 0.54;
+    return total + 0.64;
+  }, 0);
+}
+
+function fittedFallbackTitle(value) {
+  const maxWidth = 420;
+  const maxFontSize = 48;
+  const minFontSize = 30;
+  const ellipsis = "...";
+  const originalText = cleanText(value) || "PlayDock";
+  let text = originalText;
+
+  while (text.length > 1 && fallbackTitleWidthUnits(`${text}${ellipsis}`) * minFontSize > maxWidth) {
+    text = text.slice(0, -1).trimEnd();
+  }
+
+  if (text !== originalText) {
+    text = `${text}${ellipsis}`;
+  }
+
+  const units = Math.max(fallbackTitleWidthUnits(text), 1);
+  const fontSize = Math.floor(Math.min(maxFontSize, Math.max(minFontSize, maxWidth / units)));
+
+  return {
+    text: escapeSvgText(text),
+    fontSize,
+  };
+}
+
 function fallbackArt(game) {
   const [a, b] = gameAccent(game);
-  const title = escapeSvgText(game.title || game.name || "PlayDock");
+  const title = fittedFallbackTitle(game.title || game.name || "PlayDock");
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800">
       <defs>
@@ -312,9 +350,9 @@ function fallbackArt(game) {
       <rect width="600" height="800" fill="url(#g)" opacity=".82"/>
       <rect width="600" height="800" fill="url(#p)" opacity=".52"/>
       <circle cx="472" cy="122" r="98" fill="rgba(255,255,255,.16)"/>
-      <rect x="54" y="494" width="492" height="174" rx="18" fill="rgba(0,0,0,.28)"/>
-      <text x="76" y="574" fill="white" font-family="Arial, sans-serif" font-size="48" font-weight="800">${title}</text>
-      <text x="78" y="626" fill="rgba(255,255,255,.74)" font-family="Arial, sans-serif" font-size="24">PlayDock Library</text>
+      <rect x="54" y="313" width="492" height="174" rx="18" fill="rgba(0,0,0,.28)"/>
+      <text x="300" y="393" fill="white" font-family="Arial, sans-serif" font-size="${title.fontSize}" font-weight="800" text-anchor="middle">${title.text}</text>
+      <text x="300" y="445" fill="rgba(255,255,255,.74)" font-family="Arial, sans-serif" font-size="24" text-anchor="middle">PlayDock Library</text>
     </svg>`;
   return `url("data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}")`;
 }
@@ -2806,9 +2844,7 @@ function escapeAttribute(value) {
 }
 
 function escapeSvgText(value) {
-  const text = cleanText(value);
-  const shortText = text.length > 18 ? `${text.slice(0, 16)}...` : text;
-  return shortText
+  return cleanText(value)
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;");
