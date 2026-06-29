@@ -42,6 +42,15 @@ const DEFAULTS_PATH = path.join(__dirname, 'defaults.json');
 let saveWindowBoundsTimer = null;
 const folderScanJobs = new Map();
 const launchingGameIds = new Set();
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
+
+if (!gotSingleInstanceLock) {
+    app.quit();
+} else {
+    app.on('second-instance', () => {
+        showMainWindow();
+    });
+}
 
 async function openExternalUrl(url) {
     const targetUrl = String(url || "");
@@ -775,6 +784,7 @@ function applyAppSettings(settings = {}) {
     }
 }
 
+if (gotSingleInstanceLock) {
 app.whenReady().then(async val => {
 
     fs.ensureDirSync(APP_LOCAL_PATH, { recursive: true });
@@ -1293,6 +1303,7 @@ app.whenReady().then(async val => {
         }
     });
 });
+}
 
 app.on('window-all-closed', async () => {
     await cleanup().catch(console.error);
