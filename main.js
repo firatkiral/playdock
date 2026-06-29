@@ -13,6 +13,7 @@ const steam = require("./src/steam");
 const epic = require("./src/epic");
 const ubisoft = require("./src/ubisoft");
 const gog = require("./src/gog");
+const xbox = require("./src/xbox");
 const fn = require("./src/functions");
 const igdb = require("./src/igdb");
 const rss = require("./src/rss");
@@ -27,7 +28,7 @@ const METADATA_PATH = path.join(APP_LOCAL_PATH, 'metadata');
 const APP_ICON_PATH = path.join(__dirname, 'client', 'images', 'playdock_logo.png');
 const APP_SHORTCUT_ICON_PATH = path.join(__dirname, 'client', 'images', 'icon.ico');
 const DEFAULT_WINDOW_BOUNDS = { width: 1280, height: 720, isMaximized: false };
-const AUTOSCAN_SOURCES = ["steam", "epic", "ubisoft", "gog"];
+const AUTOSCAN_SOURCES = ["steam", "epic", "ubisoft", "gog", "xbox"];
 const DEFAULT_LIBRARY_VIEW_SETTINGS = {
     source: "all",
     sort: "name",
@@ -923,6 +924,7 @@ app.whenReady().then(async val => {
             { source: 'epic', scan: () => epic.getInstalledGames() },
             { source: 'ubisoft', scan: () => ubisoft.getInstalledGames() },
             { source: 'gog', scan: () => gog.getInstalledGames() },
+            { source: 'xbox', scan: () => xbox.getInstalledGames() },
         ];
         const scannedGames = [];
         const scannedSources = new Set();
