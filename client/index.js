@@ -42,6 +42,7 @@ const state = {
   pendingUnhideGameIds: new Set(),
   launchingGameIds: new Set(),
   isInspectingGameFile: false,
+  isSavingGame: false,
   libraryView: {
     source: "all",
     sort: "name",
@@ -1507,11 +1508,52 @@ function setAddGameMode(mode, game = null) {
   const isLocal = !isEdit || isLocalSource(state.editingGameSource);
 
   addGameDrawerTitle.textContent = isEdit ? "Edit Game" : "Add Game";
-  saveGameButton.textContent = isEdit ? "Save Changes" : "Save Game";
+  renderSaveGameButton();
   editGameDanger.classList.toggle("is-hidden", !isEdit);
   editGameDanger.textContent = isLocal ? "Delete Game" : "Hide Game";
   gameNameInput.readOnly = false;
   setEditorLocalFieldsVisible(isLocal);
+}
+
+function getSaveGameButtonText() {
+  return state.editorMode === "edit" ? "Save Changes" : "Save Game";
+}
+
+function renderSaveGameButton() {
+  if (state.isSavingGame) {
+    saveGameButton.innerHTML = '<span class="button-label"><span class="button-spinner" aria-hidden="true"></span><span>Saving...</span></span>';
+  } else {
+    saveGameButton.textContent = getSaveGameButtonText();
+  }
+  saveGameButton.setAttribute("aria-busy", String(state.isSavingGame));
+}
+
+function setAddGameSaving(isSaving) {
+  state.isSavingGame = isSaving;
+  addGameDrawer.classList.toggle("is-busy", isSaving);
+  addGameDrawer.setAttribute("aria-busy", String(isSaving));
+  closeAddGame.disabled = isSaving;
+  cancelAddGame.disabled = isSaving;
+  saveGameButton.disabled = isSaving;
+  editGameDanger.disabled = isSaving;
+  openMetadataModal.disabled = isSaving;
+  clearMetadataButton.disabled = isSaving;
+  clearCoverButton.disabled = isSaving;
+  clearScreenshotsButton.disabled = isSaving;
+  gameNameInput.disabled = isSaving;
+  gameDescriptionInput.disabled = isSaving;
+  gameGenresInput.disabled = isSaving;
+  gameCoverImageInput.disabled = isSaving;
+  gameScreenshotsInput.disabled = isSaving;
+  gameCmdInput.disabled = isSaving;
+  gameInstallDirInput.disabled = isSaving;
+  gameExeInput.disabled = isSaving;
+  gameArgsInput.disabled = isSaving;
+  gameDropZone.classList.toggle("is-disabled", isSaving || state.isInspectingGameFile);
+  gameDropZone.setAttribute("aria-disabled", String(isSaving || state.isInspectingGameFile));
+  gameDropZone.setAttribute("aria-busy", String(isSaving || state.isInspectingGameFile));
+  browseGameFile.disabled = isSaving || state.isInspectingGameFile;
+  renderSaveGameButton();
 }
 
 function parseListInput(value) {
@@ -1848,7 +1890,8 @@ function openEditGamePanel(gameId) {
   gameNameInput.focus();
 }
 
-function closeAddGamePanel() {
+function closeAddGamePanel({ force = false } = {}) {
+  if (state.isSavingGame && !force) return;
   closeMetadataSearchModal();
   addGameBackdrop.classList.remove("open");
   addGameBackdrop.setAttribute("aria-hidden", "true");
@@ -1875,11 +1918,12 @@ function setGameDropFeedback(message, kind = "info") {
 
 function setGameDropBusy(isBusy, message) {
   state.isInspectingGameFile = isBusy;
-  gameDropZone.classList.toggle("is-disabled", isBusy);
+  const isDisabled = isBusy || state.isSavingGame;
+  gameDropZone.classList.toggle("is-disabled", isDisabled);
   gameDropZone.classList.remove("drag-over");
-  gameDropZone.setAttribute("aria-disabled", String(isBusy));
-  gameDropZone.setAttribute("aria-busy", String(isBusy));
-  browseGameFile.disabled = isBusy;
+  gameDropZone.setAttribute("aria-disabled", String(isDisabled));
+  gameDropZone.setAttribute("aria-busy", String(isDisabled));
+  browseGameFile.disabled = isDisabled;
   if (message !== undefined) {
     setGameDropFeedback(message);
   }
@@ -1887,6 +1931,7 @@ function setGameDropBusy(isBusy, message) {
 
 function resetAddGameForm() {
   addGameForm.reset();
+  setAddGameSaving(false);
   setAddGameMode("create");
   gameSourcePath.value = "";
   addGameError.textContent = "";
@@ -1909,7 +1954,7 @@ function fillAddGameForm(draft) {
 }
 
 async function inspectAndFillGame(filePath) {
-  if (!filePath || state.isInspectingGameFile) return;
+  if (!filePath || state.isInspectingGameFile || state.isSavingGame) return;
   addGameError.textContent = "";
   setGameDropBusy(true, "Reading file...");
 
@@ -2902,10 +2947,18 @@ function bindControls() {
     closeAddGamePanel();
   });
   cancelAddGame.addEventListener("click", closeAddGamePanel);
-  openMetadataModal.addEventListener("click", openMetadataSearchModal);
-  clearCoverButton.addEventListener("click", clearCoverImage);
-  clearScreenshotsButton.addEventListener("click", clearScreenshots);
-  clearMetadataButton.addEventListener("click", clearEditorMetadata);
+  openMetadataModal.addEventListener("click", () => {
+    if (!state.isSavingGame) openMetadataSearchModal();
+  });
+  clearCoverButton.addEventListener("click", () => {
+    if (!state.isSavingGame) clearCoverImage();
+  });
+  clearScreenshotsButton.addEventListener("click", () => {
+    if (!state.isSavingGame) clearScreenshots();
+  });
+  clearMetadataButton.addEventListener("click", () => {
+    if (!state.isSavingGame) clearEditorMetadata();
+  });
   closeMetadataModal.addEventListener("click", closeMetadataSearchModal);
   cancelMetadataModal.addEventListener("click", closeMetadataSearchModal);
   metadataModalBackdrop.addEventListener("click", (event) => {
@@ -2929,6 +2982,7 @@ function bindControls() {
     closeMetadataSearchModal();
   });
   editGameDanger.addEventListener("click", async () => {
+    if (state.isSavingGame) return;
     if (state.editorMode !== "edit" || !state.editingGameId) return;
 
     try {
@@ -2962,7 +3016,7 @@ function bindControls() {
   });
 
   browseGameFile.addEventListener("click", async () => {
-    if (state.isInspectingGameFile) return;
+    if (state.isInspectingGameFile || state.isSavingGame) return;
     addGameError.textContent = "";
     setGameDropBusy(true, "Reading file...");
 
@@ -3039,7 +3093,7 @@ function bindControls() {
 
   gameDropZone.addEventListener("dragover", (event) => {
     event.preventDefault();
-    if (state.isInspectingGameFile) return;
+    if (state.isInspectingGameFile || state.isSavingGame) return;
     gameDropZone.classList.add("drag-over");
   });
 
@@ -3050,7 +3104,7 @@ function bindControls() {
   gameDropZone.addEventListener("drop", async (event) => {
     event.preventDefault();
     gameDropZone.classList.remove("drag-over");
-    if (state.isInspectingGameFile) return;
+    if (state.isInspectingGameFile || state.isSavingGame) return;
 
     const file = event.dataTransfer.files[0];
     if (!file) return;
@@ -3061,6 +3115,7 @@ function bindControls() {
 
   addGameForm.addEventListener("submit", async (event) => {
     event.preventDefault();
+    if (state.isSavingGame) return;
     addGameError.textContent = "";
 
     const payload = getAddGamePayload();
@@ -3073,18 +3128,20 @@ function bindControls() {
       return;
     }
 
+    setAddGameSaving(true);
     try {
       const game = state.editorMode === "edit"
         ? await window.electronAPI.updateGame(payload)
         : await window.electronAPI.addLocalGame(payload);
       mergeGamesIntoState([game]);
       state.selectedGameId = game.id;
-      closeAddGamePanel();
+      closeAddGamePanel({ force: true });
       render();
     } catch (error) {
       addGameError.textContent = state.editorMode === "edit"
         ? "Could not save changes for this game."
         : "Could not save this game.";
+      setAddGameSaving(false);
     }
   });
 

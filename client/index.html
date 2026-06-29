@@ -1526,6 +1526,12 @@
       transform: translateY(-1px);
     }
 
+    .add-game-drawer.is-busy .file-picker-button {
+      opacity: 0.58;
+      cursor: default;
+      transform: none;
+    }
+
     .file-picker-name {
       min-width: 0;
       overflow: hidden;
@@ -2479,8 +2485,8 @@
       <div id="addGameError" class="form-error"></div>
 
       <div class="drawer-actions">
-        <button id="saveGameButton" class="primary-button" type="submit">Save Game</button>
         <button id="cancelAddGame" class="ghost-button" type="button">Cancel</button>
+        <button id="saveGameButton" class="primary-button" type="submit">Save Game</button>
         <button id="editGameDanger" class="danger-button is-hidden" type="button">Delete Game</button>
       </div>
     </form>
