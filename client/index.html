@@ -1141,9 +1141,15 @@
 
     .library-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(var(--game-card-min), var(--game-card-width)));
+      grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--game-card-min)), 1fr));
       gap: 22px;
       align-items: start;
+      justify-content: stretch;
+    }
+
+    .library-grid:has(> .game-card:first-child:last-child),
+    .library-grid:has(> .game-card:first-child:nth-last-child(2)) {
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--game-card-min)), var(--game-card-width)));
       justify-content: start;
     }
 
