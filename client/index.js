@@ -1532,32 +1532,43 @@ function renderSaveGameButton() {
   saveGameButton.setAttribute("aria-busy", String(state.isSavingGame));
 }
 
+function renderBrowseGameFileButton() {
+  if (state.isInspectingGameFile) {
+    browseGameFile.innerHTML = '<span class="button-label"><span class="button-spinner" aria-hidden="true"></span><span>Reading...</span></span>';
+  } else {
+    browseGameFile.textContent = "Browse";
+  }
+  browseGameFile.setAttribute("aria-busy", String(state.isInspectingGameFile));
+}
+
 function setAddGameSaving(isSaving) {
   state.isSavingGame = isSaving;
-  addGameDrawer.classList.toggle("is-busy", isSaving);
-  addGameDrawer.setAttribute("aria-busy", String(isSaving));
-  closeAddGame.disabled = isSaving;
-  cancelAddGame.disabled = isSaving;
-  saveGameButton.disabled = isSaving;
-  editGameDanger.disabled = isSaving;
-  openMetadataModal.disabled = isSaving;
-  clearMetadataButton.disabled = isSaving;
-  clearCoverButton.disabled = isSaving;
-  clearScreenshotsButton.disabled = isSaving;
-  gameNameInput.disabled = isSaving;
-  gameDescriptionInput.disabled = isSaving;
-  gameGenresInput.disabled = isSaving;
-  gameCoverImageInput.disabled = isSaving;
-  gameScreenshotsInput.disabled = isSaving;
-  gameCmdInput.disabled = isSaving;
-  gameInstallDirInput.disabled = isSaving;
-  gameExeInput.disabled = isSaving;
-  gameArgsInput.disabled = isSaving;
-  gameDropZone.classList.toggle("is-disabled", isSaving || state.isInspectingGameFile);
-  gameDropZone.setAttribute("aria-disabled", String(isSaving || state.isInspectingGameFile));
-  gameDropZone.setAttribute("aria-busy", String(isSaving || state.isInspectingGameFile));
-  browseGameFile.disabled = isSaving || state.isInspectingGameFile;
+  const isBusy = state.isSavingGame || state.isInspectingGameFile;
+  addGameDrawer.classList.toggle("is-busy", isBusy);
+  addGameDrawer.setAttribute("aria-busy", String(isBusy));
+  closeAddGame.disabled = isBusy;
+  cancelAddGame.disabled = isBusy;
+  saveGameButton.disabled = isBusy;
+  editGameDanger.disabled = isBusy;
+  openMetadataModal.disabled = isBusy;
+  clearMetadataButton.disabled = isBusy;
+  clearCoverButton.disabled = isBusy;
+  clearScreenshotsButton.disabled = isBusy;
+  gameNameInput.disabled = isBusy;
+  gameDescriptionInput.disabled = isBusy;
+  gameGenresInput.disabled = isBusy;
+  gameCoverImageInput.disabled = isBusy;
+  gameScreenshotsInput.disabled = isBusy;
+  gameCmdInput.disabled = isBusy;
+  gameInstallDirInput.disabled = isBusy;
+  gameExeInput.disabled = isBusy;
+  gameArgsInput.disabled = isBusy;
+  gameDropZone.classList.toggle("is-disabled", isBusy);
+  gameDropZone.setAttribute("aria-disabled", String(isBusy));
+  gameDropZone.setAttribute("aria-busy", String(isBusy));
+  browseGameFile.disabled = isBusy;
   renderSaveGameButton();
+  renderBrowseGameFileButton();
 }
 
 function parseListInput(value) {
@@ -1895,7 +1906,7 @@ function openEditGamePanel(gameId) {
 }
 
 function closeAddGamePanel({ force = false } = {}) {
-  if (state.isSavingGame && !force) return;
+  if ((state.isSavingGame || state.isInspectingGameFile) && !force) return;
   closeMetadataSearchModal();
   addGameBackdrop.classList.remove("open");
   addGameBackdrop.setAttribute("aria-hidden", "true");
@@ -1922,12 +1933,8 @@ function setGameDropFeedback(message, kind = "info") {
 
 function setGameDropBusy(isBusy, message) {
   state.isInspectingGameFile = isBusy;
-  const isDisabled = isBusy || state.isSavingGame;
-  gameDropZone.classList.toggle("is-disabled", isDisabled);
+  setAddGameSaving(state.isSavingGame);
   gameDropZone.classList.remove("drag-over");
-  gameDropZone.setAttribute("aria-disabled", String(isDisabled));
-  gameDropZone.setAttribute("aria-busy", String(isDisabled));
-  browseGameFile.disabled = isDisabled;
   if (message !== undefined) {
     setGameDropFeedback(message);
   }
@@ -2952,16 +2959,16 @@ function bindControls() {
   });
   cancelAddGame.addEventListener("click", closeAddGamePanel);
   openMetadataModal.addEventListener("click", () => {
-    if (!state.isSavingGame) openMetadataSearchModal();
+    if (!state.isSavingGame && !state.isInspectingGameFile) openMetadataSearchModal();
   });
   clearCoverButton.addEventListener("click", () => {
-    if (!state.isSavingGame) clearCoverImage();
+    if (!state.isSavingGame && !state.isInspectingGameFile) clearCoverImage();
   });
   clearScreenshotsButton.addEventListener("click", () => {
-    if (!state.isSavingGame) clearScreenshots();
+    if (!state.isSavingGame && !state.isInspectingGameFile) clearScreenshots();
   });
   clearMetadataButton.addEventListener("click", () => {
-    if (!state.isSavingGame) clearEditorMetadata();
+    if (!state.isSavingGame && !state.isInspectingGameFile) clearEditorMetadata();
   });
   closeMetadataModal.addEventListener("click", closeMetadataSearchModal);
   cancelMetadataModal.addEventListener("click", closeMetadataSearchModal);
@@ -2986,7 +2993,7 @@ function bindControls() {
     closeMetadataSearchModal();
   });
   editGameDanger.addEventListener("click", async () => {
-    if (state.isSavingGame) return;
+    if (state.isSavingGame || state.isInspectingGameFile) return;
     if (state.editorMode !== "edit" || !state.editingGameId) return;
 
     try {
@@ -3119,7 +3126,7 @@ function bindControls() {
 
   addGameForm.addEventListener("submit", async (event) => {
     event.preventDefault();
-    if (state.isSavingGame) return;
+    if (state.isSavingGame || state.isInspectingGameFile) return;
     addGameError.textContent = "";
 
     const payload = getAddGamePayload();
