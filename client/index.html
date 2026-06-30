@@ -56,12 +56,42 @@
 
     body {
       height: 100vh;
+      user-select: none;
+      -webkit-user-select: none;
     }
 
     button,
     input,
     textarea {
       font: inherit;
+    }
+
+    input,
+    textarea,
+    [contenteditable="true"],
+    .scan-option-path,
+    .file-picker-name,
+    .metadata-feedback,
+    .form-error,
+    .drawer-game-title,
+    .drawer-description,
+    .detail-list,
+    .terms-content,
+    .info-modal-text,
+    .settings-row strong,
+    .settings-row span,
+    .settings-help-text,
+    .settings-inline-feedback,
+    .settings-copy-value {
+      user-select: text;
+      -webkit-user-select: text;
+    }
+
+    img,
+    svg {
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-user-drag: none;
     }
 
     button {
