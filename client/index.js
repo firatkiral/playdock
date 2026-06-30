@@ -1471,6 +1471,14 @@ function selectGame(gameId) {
   const game = state.games.find((candidate) => String(candidate.id) === String(gameId));
   if (!game) return;
 
+  const isAlreadySelected = String(game.id) === String(state.selectedGameId);
+  if (isAlreadySelected) {
+    state.userSelectedGameId = true;
+    closeDetails();
+    ensureGameMetadata(game.id);
+    return;
+  }
+
   state.selectedGameId = game.id;
   state.userSelectedGameId = true;
   state.heroSlideIndex = 0;
