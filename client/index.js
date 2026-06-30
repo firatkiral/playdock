@@ -1467,6 +1467,18 @@ function cssEscape(value) {
   return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
+function updateSelectedGameCards(gameId) {
+  document.querySelectorAll("[data-select-game]").forEach((card) => {
+    card.classList.toggle("selected", String(card.dataset.selectGame) === String(gameId));
+  });
+}
+
+function renderSelectedHero(game) {
+  heroDock.innerHTML = renderHero(game);
+  startHeroSlideshow(game);
+  bindGameCards();
+}
+
 function selectGame(gameId) {
   const game = state.games.find((candidate) => String(candidate.id) === String(gameId));
   if (!game) return;
@@ -1483,7 +1495,8 @@ function selectGame(gameId) {
   state.userSelectedGameId = true;
   state.heroSlideIndex = 0;
   closeDetails();
-  render();
+  updateSelectedGameCards(game.id);
+  renderSelectedHero(game);
   ensureGameMetadata(game.id);
 }
 

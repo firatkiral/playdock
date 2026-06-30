@@ -831,7 +831,7 @@
       justify-content: space-between;
       gap: 16px;
       flex-wrap: wrap;
-      margin-bottom: 14px;
+      margin: 0 14px 14px;
     }
 
     .section-title {
@@ -923,6 +923,7 @@
       gap: 12px;
       border-bottom: 1px solid var(--line);
       padding-bottom: 8px;
+      margin-left: 14px;
     }
 
     .library-source-header h3 {
@@ -948,7 +949,8 @@
       gap: 22px;
       overflow-x: auto;
       overflow-y: hidden;
-      padding: 12px 6px 24px;
+      padding: 24px 20px;
+      scroll-padding-inline: 24px;
       scroll-snap-type: x proximity;
       scrollbar-width: thin;
       scrollbar-color: rgba(255, 255, 255, 0.20) transparent;
@@ -968,16 +970,27 @@
       cursor: default;
       scroll-snap-align: start;
       box-shadow: 0 16px 34px rgba(0, 0, 0, 0.25);
-      transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+      transition: all 200ms ease;
     }
 
     .game-card:hover,
-    .game-card:focus-visible,
-    .game-card.selected {
+    .game-card:focus-visible {
       border-color: rgba(0, 209, 167, 0.86);
-      box-shadow: 0 26px 58px rgba(0, 0, 0, 0.48), 0 0 0 2px rgba(0, 209, 167, 0.34);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.48), 0 0 0 2px rgba(0, 209, 167, 0.34);
       outline: none;
-      transform: translateY(-5px) scale(1.025);
+      transform: translateY(-3px) scale(1.012);
+    }
+
+    .game-card.selected {
+      z-index: 2;
+      border-color: rgba(84, 240, 200, 0.98);
+      box-shadow:
+        0 10px 20px rgba(0, 0, 0, 0.58),
+        0 0 0 3px rgba(84, 240, 200, 0.56),
+        0 0 14px rgba(0, 209, 167, 0.74);
+      outline: none;
+      transform: translateY(-6px) scale(1.04);
+      transition: all 100ms ease;
     }
 
     .empty-rail-card {
@@ -996,7 +1009,7 @@
       inset: 0;
       background-position: center;
       background-size: cover;
-      transition: transform 220ms ease, opacity 180ms ease;
+      transition: all 240ms ease;
       opacity: 0.82;
     }
 
@@ -1007,11 +1020,13 @@
       height: 100%;
       object-fit: cover;
       opacity: 0.92;
-      transition: transform 220ms ease, opacity 180ms ease;
+      transition: all 240ms ease;
     }
 
     .game-card:hover .game-card-media,
-    .game-card:hover .game-card-image {
+    .game-card:hover .game-card-image,
+    .game-card.selected .game-card-media,
+    .game-card.selected .game-card-image {
       transform: scale(1.04);
       opacity: 1;
     }
@@ -1175,6 +1190,7 @@
       gap: 22px;
       align-items: start;
       justify-content: stretch;
+      padding: 24px 20px;
     }
 
     .library-grid:has(> .game-card:first-child:last-child),
